@@ -1,7 +1,5 @@
 import { useState, useCallback } from 'react';
 
-import Box from '@mui/material/Box';
-import Avatar from '@mui/material/Avatar';
 import Popover from '@mui/material/Popover';
 import TableRow from '@mui/material/TableRow';
 import Checkbox from '@mui/material/Checkbox';
@@ -9,6 +7,8 @@ import MenuList from '@mui/material/MenuList';
 import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
+
+import { fDateTime } from 'src/utils/format-time';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -47,7 +47,7 @@ export function TransactionsTableRow({ row, selected, onSelectRow }: Transaction
           <Checkbox disableRipple checked={selected} onChange={onSelectRow} />
         </TableCell>
 
-        <TableCell>{row.date.toLocaleString("en-us").replace(/,/, '')}</TableCell>
+        <TableCell>{fDateTime(row.date)}</TableCell>
 
         <TableCell>{row.name}</TableCell>
 

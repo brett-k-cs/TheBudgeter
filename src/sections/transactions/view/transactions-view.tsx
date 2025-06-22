@@ -20,6 +20,7 @@ import { UserTableHead } from '../user-table-head';
 import { TableEmptyRows } from '../table-empty-rows';
 import { UserTableToolbar } from '../user-table-toolbar';
 import { TransactionsTableRow } from '../user-table-row';
+import { NewTransactionModal } from '../new-transaction-modal';
 import { emptyRows, applyFilter, getComparator } from '../utils';
 
 import type { TransactionProps } from '../user-table-row';
@@ -39,8 +40,23 @@ export function TransactionsView() {
 
   const notFound = !dataFiltered.length && !!filterName;
 
+  const [openNew, setOpenNew] = useState(false);
+
+  const openNewTransactionModal = () => {
+    setOpenNew(true);
+  }
+
+  const handleNewTransaction = () => {
+    
+  }
+
   return (
     <DashboardContent>
+      <NewTransactionModal
+        open={openNew}
+        onClose={() => setOpenNew(false)}
+        onSubmit={handleNewTransaction}
+      />
       <Box
         sx={{
           mb: 5,
@@ -55,6 +71,7 @@ export function TransactionsView() {
           variant="contained"
           color="inherit"
           startIcon={<Iconify icon="mingcute:add-line" />}
+          onClick={openNewTransactionModal}
         >
           New Transaction
         </Button>
