@@ -2,7 +2,7 @@
 
 The Budgeter is a clean, intuitive budgeting website designed to help users take control of their finances. It offers a visual dashboard showing income, expenses, and account balances at a glance. Users can set up personalized monthly budgets, track spending progress in real time, and view detailed transaction history.
 
-![preview](public/assets/images/preview.png)
+![preview](frontend/public/assets/images/preview.png)
 
 > Free Budget Website made with React + Vite.js.
 
@@ -25,7 +25,8 @@ The Budgeter is a clean, intuitive budgeting website designed to help users take
 
 - Clone the repo: `git clone https://github.com/brett-k-cs/thebudgeter.git`
 - Recommended: `Node.js v20.x`
-- **Install:** `npm i` or `yarn install`
-- **Start:** `npm run dev` or `yarn dev`
-- **Build:** `npm run build` or `yarn build`
+- **Install:** `cd frontend; npm i; cd ../backend; npm i` or `yarn install`
+- **Start (Windows):** `./runDev.bat`
+- **Start (Others):** `cd backend; npm run dev:server; cd ../frontend; npm run dev` or `yarn dev`
+<!-- - **Build:** `npm run build` or `yarn build` -->
 - Open browser: `http://localhost:3039`
