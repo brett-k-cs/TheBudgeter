@@ -16,6 +16,7 @@ import {
   MenuItem,
   FormLabel,
   TextField,
+  Typography,
   RadioGroup,
   InputLabel,
   FormControl,
@@ -23,15 +24,15 @@ import {
   DialogContent,
   DialogActions,
   FormControlLabel,
-  Typography,
 } from '@mui/material';
 
 import { categories } from 'src/_mock/_categories';
 
 import { MoneyInput } from 'src/components/money-input/money-input';
 
-type NewTransactionSubmitProps = {
-  date: Dayjs | null,
+export type NewTransactionSubmitProps = {
+  date: Dayjs,
+  type: 'withdrawal' | 'deposit',
   description: string,
   category: string
   amount: number,
@@ -40,7 +41,7 @@ type NewTransactionSubmitProps = {
 type NewTransactionModalProps = {
   open: boolean,
   onClose: () => void,
-  onSubmit: ({ amount, description, category, date } : NewTransactionSubmitProps) => void
+  onSubmit: ({ type, amount, description, category, date } : NewTransactionSubmitProps) => void
 }
 
 export function NewTransactionModal({ onClose, onSubmit, open = true } : NewTransactionModalProps) {
@@ -49,7 +50,7 @@ export function NewTransactionModal({ onClose, onSubmit, open = true } : NewTran
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
-  const [date, setDate] = useState<Dayjs | null>(dayjs());
+  const [date, setDate] = useState<Dayjs>(dayjs());
 
   const handleTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setType(event.target.value as 'withdrawal' | 'deposit');
@@ -68,8 +69,12 @@ export function NewTransactionModal({ onClose, onSubmit, open = true } : NewTran
       setError('Please select a category');
       return;
     }
+    if (!date) {
+      setError('Please select a date');
+      return;
+    }
 
-    onSubmit({ amount: parseFloat(amount), description, category, date });
+    onSubmit({ amount: parseFloat(amount), type, description, category, date });
     onClose();
   };
 
@@ -145,7 +150,7 @@ export function NewTransactionModal({ onClose, onSubmit, open = true } : NewTran
           <DateTimePicker
             label="Transaction Date"
             value={date}
-            onChange={(newDate) => setDate(newDate)}
+            onChange={(newDate) => newDate && setDate(newDate)}
             viewRenderers={{
               hours: renderTimeViewClock,
               minutes: renderTimeViewClock,

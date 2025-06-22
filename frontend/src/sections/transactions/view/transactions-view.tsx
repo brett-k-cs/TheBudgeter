@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -9,21 +9,21 @@ import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 
-import { _users } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
 import { TableNoData } from '../table-no-data';
-import { UserTableHead } from '../user-table-head';
 import { TableEmptyRows } from '../table-empty-rows';
-import { UserTableToolbar } from '../user-table-toolbar';
-import { TransactionsTableRow } from '../user-table-row';
+import { UserTableHead } from '../transactions-table-head';
 import { NewTransactionModal } from '../new-transaction-modal';
+import { TransactionsTableRow } from '../transactions-table-row';
+import { UserTableToolbar } from '../transactions-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
 
-import type { TransactionProps } from '../user-table-row';
+import type { TransactionProps } from '../transactions-table-row';
+import type { NewTransactionSubmitProps } from '../new-transaction-modal';
 
 // ----------------------------------------------------------------------
 
@@ -32,8 +32,10 @@ export function TransactionsView() {
 
   const [filterName, setFilterName] = useState('');
 
+  const [transactions, setTransactions] = useState<TransactionProps[]>([]);
+
   const dataFiltered: TransactionProps[] = applyFilter({
-    inputData: [],
+    inputData: transactions,
     comparator: getComparator(table.order, table.orderBy),
     filterName,
   });
@@ -44,11 +46,57 @@ export function TransactionsView() {
 
   const openNewTransactionModal = () => {
     setOpenNew(true);
-  }
+  };
 
-  const handleNewTransaction = () => {
-    
-  }
+  const handleNewTransaction = ({
+    type,
+    amount,
+    description,
+    category,
+    date,
+  }: NewTransactionSubmitProps) => {
+    // Send the new transaction data to the backend
+    fetch('/api/transactions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: 1, // Replace with actual user ID
+        type,
+        amount,
+        description,
+        category,
+        date: date.toDate(),
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log('Transaction created:', data);
+        setOpenNew(false);
+        setTransactions((prev) => [
+          ...prev,
+          data.data
+        ]);
+      })
+      .catch((error) => {
+        console.error('Error creating transaction:', error);
+      });
+  };
+
+  // On initial load, fetch transactions from the backend
+  useEffect(() => {
+    console.log('Fetching transactions from the backend...');
+    fetch('/api/transactions')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log('Transactions fetched:', data);
+        setTransactions(data);
+      })
+      .catch((error) => {
+        console.error('Error fetching transactions:', error);
+      });
+  }, []);
 
   return (
     <DashboardContent>
@@ -93,13 +141,13 @@ export function TransactionsView() {
               <UserTableHead
                 order={table.order}
                 orderBy={table.orderBy}
-                rowCount={_users.length}
+                rowCount={transactions.length}
                 numSelected={table.selected.length}
                 onSort={table.onSort}
                 onSelectAllRows={(checked) =>
                   table.onSelectAllRows(
                     checked,
-                    _users.map((user) => user.id)
+                    transactions.map((transaction) => transaction.id)
                   )
                 }
                 headLabel={[
@@ -127,7 +175,7 @@ export function TransactionsView() {
 
                 <TableEmptyRows
                   height={68}
-                  emptyRows={emptyRows(table.page, table.rowsPerPage, _users.length)}
+                  emptyRows={emptyRows(table.page, table.rowsPerPage, transactions.length)}
                 />
 
                 {notFound && <TableNoData searchQuery={filterName} />}
@@ -139,7 +187,7 @@ export function TransactionsView() {
         <TablePagination
           component="div"
           page={table.page}
-          count={_users.length}
+          count={transactions.length}
           rowsPerPage={table.rowsPerPage}
           onPageChange={table.onChangePage}
           rowsPerPageOptions={[10, 25, 50]}
@@ -155,7 +203,7 @@ export function TransactionsView() {
 export function useTable() {
   const [page, setPage] = useState(0);
   const [orderBy, setOrderBy] = useState('date');
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selected, setSelected] = useState<string[]>([]);
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
 

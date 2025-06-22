@@ -17,6 +17,7 @@ import { Iconify } from 'src/components/iconify';
 
 export type TransactionProps = {
   id: string;
+  type: 'withdrawal' | 'deposit'
   date: Date;
   name: string;
   category: string;
@@ -54,7 +55,7 @@ export function TransactionsTableRow({ row, selected, onSelectRow }: Transaction
         <TableCell>{row.category}</TableCell>
 
         <TableCell>
-          <Label color={row.amount >= 0 ? 'success' : 'error'}>{row.amount}</Label>
+          <Label color={row.type == 'deposit' ? 'success' : 'error'}>${row.amount}</Label>
         </TableCell>
 
         <TableCell align="right">

@@ -1,4 +1,4 @@
-import type { TransactionProps } from './user-table-row';
+import type { TransactionProps } from './transactions-table-row';
 
 // ----------------------------------------------------------------------
 

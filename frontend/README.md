@@ -2,7 +2,7 @@
 
 The Budgeter is a clean, intuitive budgeting website designed to help users take control of their finances. It offers a visual dashboard showing income, expenses, and account balances at a glance. Users can set up personalized monthly budgets, track spending progress in real time, and view detailed transaction history.
 
-![preview](public/assets/images/minimal-free-preview.jpg)
+![preview](public/assets/images/preview.png)
 
 > Free Budget Website made with React + Vite.js.
 
