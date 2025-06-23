@@ -10,6 +10,8 @@ import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 
 import { fDateTime } from 'src/utils/format-time';
 
+import { categories } from 'src/_mock/_categories';
+
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 
@@ -19,7 +21,7 @@ export type TransactionProps = {
   id: string;
   type: 'withdrawal' | 'deposit'
   date: Date;
-  name: string;
+  description: string;
   category: string;
   amount: number;
 };
@@ -50,9 +52,9 @@ export function TransactionsTableRow({ row, selected, onSelectRow }: Transaction
 
         <TableCell>{fDateTime(row.date)}</TableCell>
 
-        <TableCell>{row.name}</TableCell>
+        <TableCell>{row.description}</TableCell>
 
-        <TableCell>{row.category}</TableCell>
+        <TableCell>{categories.find(a => a.id == row.category)?.label || row.category}</TableCell>
 
         <TableCell>
           <Label color={row.type == 'deposit' ? 'success' : 'error'}>${row.amount}</Label>

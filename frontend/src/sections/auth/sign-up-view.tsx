@@ -13,17 +13,23 @@ import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-export function SignInView() {
+export function SignUpView() {
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSignIn = () => {
-    // Validate email and password here
+  const handleSignUp = () => {
+    // Validate input
+    if (!name || name.trim() === '' || name.length < 3) {
+      setError('Please enter a valid name (at least 3 characters).');
+      return;
+    }
+
     if (!email || !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
       setError('Please enter a valid email.');
       return;
@@ -35,30 +41,7 @@ export function SignInView() {
     }
 
     setError('');
-
-    // Request to sign in
-    try {
-      fetch('/api/auth/sign-in', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
-      .then(res => res.json())
-      .then((response) => {
-        if (response.success) {
-          navigate('/');
-        }
-        else {
-          setError(response.error || 'An error occurred during sign in.');
-        }
-      })
-    } catch(err) {
-      setError('An error occurred during sign in.');
-      console.error('Sign in error:', err);
-    };
-    setError('An error occurred during sign in. Please try again later.');
+    navigate('/');
   };
 
   const renderForm = (
@@ -69,6 +52,20 @@ export function SignInView() {
         flexDirection: 'column',
       }}
     >
+      <TextField
+        fullWidth
+        name="name"
+        label="Full Name"
+        placeholder="Bob Smith"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        sx={{ mb: 3 }}
+        slotProps={{
+          inputLabel: { shrink: true },
+        }}
+        error={error === 'Please enter a valid name (at least 3 characters).'}
+      />
+
       <TextField
         fullWidth
         name="email"
@@ -117,9 +114,9 @@ export function SignInView() {
         type="submit"
         color="inherit"
         variant="contained"
-        onClick={handleSignIn}
+        onClick={handleSignUp}
       >
-        Sign in
+        Sign up
       </Button>
     </Box>
   );
@@ -135,17 +132,17 @@ export function SignInView() {
           mb: 5,
         }}
       >
-        <Typography variant="h5">Sign in</Typography>
+        <Typography variant="h5">Sign up</Typography>
         <Typography
           variant="body2"
           sx={{
             color: 'text.secondary',
-            textAlign: 'center',
+            textAlign: 'center'
           }}
         >
-          Don’t have an account?
-          <Link variant="subtitle2" sx={{ ml: 0.5 }} onClick={() => navigate('/sign-up')}>
-            Get started
+          Already have an account?
+          <Link variant="subtitle2" sx={{ ml: 0.5 }} onClick={() => navigate('/sign-in')}>
+            Sign in
           </Link>
           {error && (
             <Typography

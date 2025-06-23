@@ -45,8 +45,8 @@ export function AnalyticsSpendingHabits({ title, subheader, chart, sx, ...other 
     dataLabels: { enabled: true, dropShadow: { enabled: false } },
     tooltip: {
       y: {
-        formatter: (value: number) => fNumber(value),
-        title: { formatter: (seriesName: string) => `${seriesName}` },
+        formatter: (value: number) => `$${fNumber(value)}`,
+        title: { formatter: (seriesName: string) => `${seriesName}:` },
       },
     },
     plotOptions: { pie: { donut: { labels: { show: false } } } },

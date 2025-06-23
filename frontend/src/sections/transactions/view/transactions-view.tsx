@@ -1,3 +1,7 @@
+import type { ImportTransactionSubmit } from 'src/components/csv-importer/csv-importer';
+import type { TransactionProps } from 'src/sections/transactions/transactions-table-row';
+import type { NewTransactionSubmitProps } from 'src/sections/transactions/new-transaction-modal';
+
 import { useState, useCallback, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
@@ -13,6 +17,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { ImportTransactionsModal } from 'src/components/csv-importer/csv-importer';
 
 import { TableNoData } from '../table-no-data';
 import { TableEmptyRows } from '../table-empty-rows';
@@ -21,9 +26,6 @@ import { NewTransactionModal } from '../new-transaction-modal';
 import { TransactionsTableRow } from '../transactions-table-row';
 import { UserTableToolbar } from '../transactions-table-toolbar';
 import { emptyRows, applyFilter, getComparator } from '../utils';
-
-import type { TransactionProps } from '../transactions-table-row';
-import type { NewTransactionSubmitProps } from '../new-transaction-modal';
 
 // ----------------------------------------------------------------------
 
@@ -43,10 +45,7 @@ export function TransactionsView() {
   const notFound = !dataFiltered.length && !!filterName;
 
   const [openNew, setOpenNew] = useState(false);
-
-  const openNewTransactionModal = () => {
-    setOpenNew(true);
-  };
+  const [openImport, setOpenImport] = useState(false);
 
   const handleNewTransaction = ({
     type,
@@ -84,6 +83,14 @@ export function TransactionsView() {
       });
   };
 
+  const handleImportTransactions = ({ data } : ImportTransactionSubmit) => {
+    setOpenImport(false);
+    setTransactions((prev) => [
+      ...prev,
+      ...data
+    ]);
+  }
+
   // On initial load, fetch transactions from the backend
   useEffect(() => {
     console.log('Fetching transactions from the backend...');
@@ -100,6 +107,11 @@ export function TransactionsView() {
 
   return (
     <DashboardContent>
+      <ImportTransactionsModal
+        open={openImport}
+        onClose={() => setOpenImport(false)}
+        onSubmit={handleImportTransactions}
+      />
       <NewTransactionModal
         open={openNew}
         onClose={() => setOpenNew(false)}
@@ -118,8 +130,17 @@ export function TransactionsView() {
         <Button
           variant="contained"
           color="inherit"
+          startIcon={<Iconify icon="solar:import-bold" />}
+          onClick={() => setOpenImport(true)}
+          sx={{ mr: 1 }}
+        >
+          Import Transactions
+        </Button>
+        <Button
+          variant="contained"
+          color="inherit"
           startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={openNewTransactionModal}
+          onClick={() => setOpenNew(true)}
         >
           New Transaction
         </Button>
@@ -152,7 +173,7 @@ export function TransactionsView() {
                 }
                 headLabel={[
                   { id: 'date', label: 'Date' },
-                  { id: 'name', label: 'Name' },
+                  { id: 'description', label: 'Description' },
                   { id: 'category', label: 'Category' },
                   { id: 'amount', label: 'Amount' },
                   { id: '' },
@@ -205,7 +226,7 @@ export function useTable() {
   const [orderBy, setOrderBy] = useState('date');
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selected, setSelected] = useState<string[]>([]);
-  const [order, setOrder] = useState<'asc' | 'desc'>('asc');
+  const [order, setOrder] = useState<'asc' | 'desc'>('desc');
 
   const onSort = useCallback(
     (id: string) => {

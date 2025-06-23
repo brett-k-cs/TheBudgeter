@@ -64,4 +64,28 @@ router.post('/', async (req: Request<{}, {}, TransactionRequestBody>, res: Respo
   }
 });
 
+router.post('/import', async (req: Request<{}, {}, { data: TransactionRequestBody[] }>, res: Response) => {
+  const { data } = req.body;
+  if (!Array.isArray(data) || data.length === 0) {
+    res.status(400).json({ error: 'Invalid data format' });
+    return;
+  }
+
+  try {
+    const transactions = await Transaction.bulkCreate(data.map(item => ({
+      userId: item.userId,
+      type: item.type,
+      amount: item.amount,
+      category: item.category,
+      description: item.description,
+      date: new Date(item.date), // Convert ISO string to Date object
+    })));
+
+    res.status(201).json({ message: "Success!", data: transactions });
+  } catch (error) {
+    console.error('Error importing transactions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export const transactionsRouter = router;
