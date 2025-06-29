@@ -9,6 +9,8 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 
+import { handleRequest } from 'src/utils/handle-request';
+
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
@@ -22,7 +24,7 @@ export function SignInView() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     // Validate email and password here
     if (!email || !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
       setError('Please enter a valid email.');
@@ -37,28 +39,20 @@ export function SignInView() {
     setError('');
 
     // Request to sign in
-    try {
-      fetch('/api/auth/sign-in', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
-      .then(res => res.json())
-      .then((response) => {
-        if (response.success) {
-          navigate('/');
-        }
-        else {
-          setError(response.error || 'An error occurred during sign in.');
-        }
-      })
-    } catch(err) {
-      setError('An error occurred during sign in.');
-      console.error('Sign in error:', err);
-    };
-    setError('An error occurred during sign in. Please try again later.');
+    const result = await handleRequest(
+      '/api/auth/login',
+      'POST',
+      setError,
+      false, // No authentication needed for sign in
+      {
+        email,
+        password,
+      }
+    );
+
+    if (result?.success) {
+      navigate('/');
+    }
   };
 
   const renderForm = (

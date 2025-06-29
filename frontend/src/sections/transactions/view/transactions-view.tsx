@@ -13,6 +13,8 @@ import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 
+import { handleRequest } from 'src/utils/handle-request';
+
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
@@ -37,7 +39,10 @@ export function TransactionsView() {
   const [transactions, setTransactions] = useState<TransactionProps[]>([]);
 
   const dataFiltered: TransactionProps[] = applyFilter({
-    inputData: transactions,
+    inputData: transactions.map(a => ({
+      ...a,
+      amount: a.type === 'withdrawal' ? -Math.abs(a.amount) : Math.abs(a.amount),
+    })), // Convert withdrawal amounts to negative
     comparator: getComparator(table.order, table.orderBy),
     filterName,
   });
@@ -47,7 +52,7 @@ export function TransactionsView() {
   const [openNew, setOpenNew] = useState(false);
   const [openImport, setOpenImport] = useState(false);
 
-  const handleNewTransaction = ({
+  const handleNewTransaction = async ({
     type,
     amount,
     description,
@@ -55,32 +60,27 @@ export function TransactionsView() {
     date,
   }: NewTransactionSubmitProps) => {
     // Send the new transaction data to the backend
-    fetch('/api/transactions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userId: 1, // Replace with actual user ID
+    const result = await handleRequest(
+      '/api/transactions',
+      'POST',
+      undefined, // No error handler needed here
+      true, // Use authentication
+      {
         type,
         amount,
         description,
         category,
         date: date.toDate(),
-      }),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log('Transaction created:', data);
+      }
+    )
+   
+    if (result) {
         setOpenNew(false);
         setTransactions((prev) => [
           ...prev,
-          data.data
+          result.data
         ]);
-      })
-      .catch((error) => {
-        console.error('Error creating transaction:', error);
-      });
+      }
   };
 
   const handleImportTransactions = ({ data } : ImportTransactionSubmit) => {
@@ -94,15 +94,16 @@ export function TransactionsView() {
   // On initial load, fetch transactions from the backend
   useEffect(() => {
     console.log('Fetching transactions from the backend...');
-    fetch('/api/transactions')
-      .then((response) => response.json())
-      .then((data) => {
-        console.log('Transactions fetched:', data);
-        setTransactions(data);
-      })
-      .catch((error) => {
-        console.error('Error fetching transactions:', error);
-      });
+    handleRequest(
+      '/api/transactions',
+      'GET',
+      undefined, // No error handler needed here
+      true // Use authentication
+    ).then((result) => {
+      if (result) {
+        setTransactions(result.data);
+      }
+    });
   }, []);
 
   return (
@@ -154,6 +155,23 @@ export function TransactionsView() {
             setFilterName(event.target.value);
             table.onResetPage();
           }}
+          onDeleteSelected={() => {
+            handleRequest(
+              '/api/transactions',
+              'DELETE',
+              undefined, // No error handler needed here
+              true, // Use authentication
+              { ids: table.selected }
+            ).then((result) => {
+              if (result) {
+                setTransactions((prev) =>
+                  prev.filter((transaction) => !table.selected.includes(transaction.id))
+                );
+                table.onResetPage();
+                table.onSelectAllRows(false, []);
+              }
+            });
+          }}
         />
 
         <Scrollbar>
@@ -162,13 +180,13 @@ export function TransactionsView() {
               <UserTableHead
                 order={table.order}
                 orderBy={table.orderBy}
-                rowCount={transactions.length}
+                rowCount={dataFiltered.length}
                 numSelected={table.selected.length}
                 onSort={table.onSort}
                 onSelectAllRows={(checked) =>
                   table.onSelectAllRows(
                     checked,
-                    transactions.map((transaction) => transaction.id)
+                    dataFiltered.map((transaction) => transaction.id)
                   )
                 }
                 headLabel={[
@@ -191,12 +209,17 @@ export function TransactionsView() {
                       row={row}
                       selected={table.selected.includes(row.id)}
                       onSelectRow={() => table.onSelectRow(row.id)}
+                      onDeleteRow={(id) => {
+                        setTransactions((prev) =>
+                          prev.filter((transaction) => transaction.id !== id)
+                        );
+                      }}
                     />
                   ))}
 
                 <TableEmptyRows
                   height={68}
-                  emptyRows={emptyRows(table.page, table.rowsPerPage, transactions.length)}
+                  emptyRows={emptyRows(table.page, table.rowsPerPage, dataFiltered.length)}
                 />
 
                 {notFound && <TableNoData searchQuery={filterName} />}
@@ -208,7 +231,7 @@ export function TransactionsView() {
         <TablePagination
           component="div"
           page={table.page}
-          count={transactions.length}
+          count={dataFiltered.length}
           rowsPerPage={table.rowsPerPage}
           onPageChange={table.onChangePage}
           rowsPerPageOptions={[10, 25, 50]}

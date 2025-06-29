@@ -65,7 +65,7 @@ router.post('/register', async (req: Request<{}, {}, RegisterRequestBody>, res: 
     sameSite: 'strict',
   });
 
-  res.status(201).json({ message: 'User registered successfully' });
+  res.status(201).json({ success: true, message: 'User registered successfully' });
 });
 
 type LoginRequestBody = {
@@ -108,7 +108,7 @@ router.post('/login', async (req: Request<{}, {}, LoginRequestBody>, res: Respon
     sameSite: 'strict',
   });
 
-  res.status(200).json({ message: 'Login successful' });
+  res.status(200).json({ success: true, message: 'Login successful' });
 });
 
 export const authRouter = router;

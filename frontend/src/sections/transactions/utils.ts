@@ -1,3 +1,5 @@
+import { fDateTime } from 'src/utils/format-time';
+
 import type { TransactionProps } from './transactions-table-row';
 
 // ----------------------------------------------------------------------
@@ -71,7 +73,11 @@ export function applyFilter({ inputData, comparator, filterName }: ApplyFilterPr
 
   if (filterName) {
     inputData = inputData.filter(
-      (transaction) => transaction.description.toLowerCase().indexOf(filterName.toLowerCase()) !== -1
+      (transaction) => transaction.description.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
+        transaction.category.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
+        transaction.type.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
+        transaction.amount.toString().toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
+        fDateTime(transaction.date).toLowerCase().indexOf(filterName.toLowerCase()) !== -1
     );
   }
 

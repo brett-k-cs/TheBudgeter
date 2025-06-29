@@ -28,7 +28,7 @@ export const authenticateTokenMiddelware = (
   }
 
   try {
-    if (accessToken) {
+    if (accessToken != null) {
       const user = verifyAccessToken(accessToken);
       req.user = user;
       return next();
@@ -36,6 +36,8 @@ export const authenticateTokenMiddelware = (
   } catch (err: any) {
     // Only try to refresh if the error is token expiration
     if (err.name !== 'TokenExpiredError') {
+      console.error('Access token verification failed:', err);
+      console.log('Access token:', accessToken);
       res.status(403).json({ message: 'Invalid token' });
       return;
     }
@@ -48,6 +50,10 @@ export const authenticateTokenMiddelware = (
     try {
       const user = verifyRefreshToken(refreshToken);
 
+      // Delete exp property from user object
+      delete user.exp;
+      delete user.iat;
+
       // Create new access token and attach to response
       const newAccessToken = signAccessToken(user);
 
@@ -56,6 +62,8 @@ export const authenticateTokenMiddelware = (
       req.user = user;
       return next();
     } catch (refreshErr) {
+      console.error('Refresh token verification failed:', refreshErr);
+      console.log('Refresh token:', refreshToken);
       res.status(403).json({ message: 'Invalid or expired refresh token' });
       return;
     }

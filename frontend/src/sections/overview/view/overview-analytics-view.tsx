@@ -1,8 +1,12 @@
+import { useState, useEffect } from 'react';
+
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 
+import { handleRequest } from 'src/utils/handle-request';
+
+import { categories } from 'src/_mock/_categories';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { _posts, _tasks, _traffic, _timeline } from 'src/_mock';
 
 import { AnalyticsWidgetSummary } from '../analytics-widget-summary';
 import { AnalyticsSpendingHabits } from '../analytics-spending-habits';
@@ -11,6 +15,49 @@ import { AnalyticsBudgetCategories } from '../analytics-budget-categories';
 // ----------------------------------------------------------------------
 
 export function OverviewAnalyticsView() {
+  const [monthlyIncome, setMonthlyIncome] = useState<Record<string, any>>({});
+  const [monthlySpending, setMonthlySpending] = useState<Record<string, any>>({});
+  const [checkingBalance, setCheckingBalance] = useState<Record<string, any>>({});
+  const [primaryBudget, setPrimaryBudget] = useState<Record<string, any>>({});
+  const [spendingByCategory, setSpendingByCategory] = useState<Record<string, any>>({});
+
+  // Fetch all summary data
+  useEffect(() => {
+    const fetchSummaries = async () => {
+      const responseReport = await handleRequest('/api/dashboard/monthlyReport');
+      if (responseReport?.success) {
+        setMonthlyIncome({
+          labels: responseReport.income.labels,
+          data: responseReport.income.data,
+        });
+        setMonthlySpending({
+          labels: responseReport.spending.labels,
+          data: responseReport.spending.data,
+        });
+      }
+
+      const responseSpendingByCategory = await handleRequest('/api/dashboard/spendingByCategory');
+      if (responseSpendingByCategory?.success) {
+        setSpendingByCategory({
+          labels: responseSpendingByCategory.data.labels,
+          data: responseSpendingByCategory.data.values,
+        });
+
+        console.log(
+          'Spending by Category:',
+          responseSpendingByCategory.data.values.length > 0
+            ? responseSpendingByCategory.data.values.map((value: number, index: number) => ({
+                label: responseSpendingByCategory.data.labels[index],
+                data: value,
+              }))
+            : []
+        );
+      }
+    };
+
+    fetchSummaries();
+  }, []);
+
   return (
     <DashboardContent maxWidth="xl">
       <Typography variant="h4" sx={{ mb: { xs: 3, md: 5 } }}>
@@ -21,12 +68,19 @@ export function OverviewAnalyticsView() {
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
             title="Monthly Income"
-            percent={2.6}
-            total={302}
+            percent={
+              monthlyIncome.data && monthlyIncome.data.length > 1
+                ? ((monthlyIncome.data[monthlyIncome.data.length - 1] -
+                    monthlyIncome.data[monthlyIncome.data.length - 2]) /
+                    monthlyIncome.data[monthlyIncome.data.length - 2]) *
+                  100
+                : 0
+            }
+            total={(monthlyIncome.data && monthlyIncome.data[monthlyIncome.data.length - 1]) || 0}
             icon={<img alt="Monthly Income" src="/assets/icons/glass/ic-glass-bag.svg" />}
             chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-              series: [22, 8, 35, 50, 82, 84, 77, 12],
+              categories: monthlyIncome?.labels || [],
+              series: monthlyIncome?.data || [],
             }}
           />
         </Grid>
@@ -34,13 +88,22 @@ export function OverviewAnalyticsView() {
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
             title="Monthly Spending"
-            percent={-0.1}
-            total={24}
+            percent={
+              monthlySpending.data && monthlySpending.data.length > 1
+                ? ((monthlySpending.data[monthlySpending.data.length - 1] -
+                    monthlySpending.data[monthlySpending.data.length - 2]) /
+                    monthlySpending.data[monthlySpending.data.length - 2]) *
+                  100
+                : 0
+            }
+            total={
+              (monthlySpending.data && monthlySpending.data[monthlySpending.data.length - 1]) || 0
+            }
             color="warning"
             icon={<img alt="Monthly Spending" src="/assets/icons/glass/ic-glass-buy.svg" />}
             chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-              series: [56, 47, 40, 62, 73, 30, 23, 54],
+              categories: monthlySpending?.labels || [],
+              series: monthlySpending?.data || [],
             }}
           />
         </Grid>
@@ -73,18 +136,20 @@ export function OverviewAnalyticsView() {
           />
         </Grid>
 
-        <Grid container spacing={2} alignItems="stretch" size={{xs: 12, md: 12, lg: 12}}>
+        <Grid container spacing={2} alignItems="stretch" size={{ xs: 12, md: 12, lg: 12 }}>
           <Grid size={{ xs: 12, md: 6, lg: 6 }}>
             <AnalyticsSpendingHabits
               title="Monthly Spending"
               chart={{
-                series: [
-                  { label: 'Gas', value: 43 },
-                  { label: 'Restaurants', value: 30 },
-                  { label: 'Supermarkets', value: 10 },
-                  { label: 'Gifts', value: 15 },
-                  { label: 'Entertainment', value: 30 },
-                ],
+                series:
+                  spendingByCategory &&
+                  Array.isArray(spendingByCategory.data) &&
+                  Array.isArray(spendingByCategory.labels)
+                    ? spendingByCategory.data.map((value: number, index: number) => ({
+                        label: categories.find(cat => cat.id === spendingByCategory.labels[index])?.label || spendingByCategory.labels[index],
+                        value,
+                      }))
+                    : [],
               }}
             />
           </Grid>
@@ -100,7 +165,7 @@ export function OverviewAnalyticsView() {
                   { name: 'Allocated', data: [51, 70, 47, 67, 40] },
                 ],
               }}
-              style={{ height: "100%" }}
+              style={{ height: '100%' }}
             />
           </Grid>
         </Grid>

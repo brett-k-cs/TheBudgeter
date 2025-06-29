@@ -9,8 +9,9 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 
-import { Iconify } from 'src/components/iconify';
+import { handleRequest } from 'src/utils/handle-request';
 
+import { Iconify } from 'src/components/iconify';
 // ----------------------------------------------------------------------
 
 export function SignUpView() {
@@ -23,14 +24,14 @@ export function SignUpView() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     // Validate input
     if (!name || name.trim() === '' || name.length < 3) {
       setError('Please enter a valid name (at least 3 characters).');
       return;
     }
 
-    if (!email || !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('Please enter a valid email.');
       return;
     }
@@ -41,7 +42,23 @@ export function SignUpView() {
     }
 
     setError('');
-    navigate('/');
+
+    // Request to sign up
+    const result = await handleRequest(
+      '/api/auth/register',
+      'POST',
+      setError,
+      false, // No authentication needed for sign up
+      {
+        name,
+        email,
+        password,
+      }
+    );
+
+    if (result?.success) {
+      navigate('/');
+    }
   };
 
   const renderForm = (
@@ -137,7 +154,7 @@ export function SignUpView() {
           variant="body2"
           sx={{
             color: 'text.secondary',
-            textAlign: 'center'
+            textAlign: 'center',
           }}
         >
           Already have an account?
@@ -145,11 +162,7 @@ export function SignUpView() {
             Sign in
           </Link>
           {error && (
-            <Typography
-              variant="body2"
-              color="error"
-              sx={{textAlign: 'center', mt: 1}}
-            >
+            <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1 }}>
               {error}
             </Typography>
           )}

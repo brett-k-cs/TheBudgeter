@@ -20,6 +20,8 @@ import {
   DialogActions,
 } from '@mui/material';
 
+import { handleRequest } from 'src/utils/handle-request';
+
 import { categories } from 'src/_mock/_categories';
 
 import { CSVImporterStyles } from './styles';
@@ -249,7 +251,7 @@ export function ImportTransactionsModal({
             ))}
             <Button
               variant="contained"
-              onClick={() => {
+              onClick={async () => {
                 if (
                   Object.values(categoriesMatch).some((value) => value === '')
                 ) {
@@ -283,13 +285,18 @@ export function ImportTransactionsModal({
                     return null;
                   }
 
+                  const categoryLabel = categoriesMatch[row[categoryIndex]] || row[categoryIndex];
+                  const category = categories.find((cat) =>
+                    cat.label.toLowerCase() === categoryLabel.toLowerCase()
+                  );
+
                   return {
                     userId: 1, // Replace with actual user ID
                     date: dayjs(row[dateIndex]),
                     description: row[descriptionIndex],
                     amount: Math.abs(parseFloat(row[amountIndex])),
                     type: (headersMatch['Type'] === 'calculate_1' ? (row[amountIndex] > 0 ? 'withdrawal' : 'deposit') : headersMatch['Type'] === 'calculate_2' ? (row[amountIndex] < 0 ? 'withdrawal' : 'deposit') : (row[typeIndex])),
-                    category: categoriesMatch[row[categoryIndex]] || row[categoryIndex],
+                    category: category?.id || row[categoryIndex] || 'miscellaneous',
                   };
                 }).filter((item) => item != null) as NewTransactionSubmitProps[];
 
@@ -300,26 +307,18 @@ export function ImportTransactionsModal({
                   return;
                 }
 
-                fetch('/api/transactions/import', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ data }),
-                })
-                  .then((response) => response.json())
-                  .then((res) => {
-                    if (res.error) {
-                      setError(`Error importing transactions: ${res.error}`);
-                    } else {
-                      onSubmit({ data: res.data });
-                      onClose();
-                    }
-                  })
-                  .catch((err) => {
-                    setError(`Error importing transactions: ${err.message}`);
-                    console.error('Error importing transactions:', err);
-                  });
+                const result = await handleRequest(
+                  '/api/transactions/import',
+                  'POST',
+                  setError,
+                  false, // No authentication needed for import
+                  { data }
+                );
+
+                if (result) {
+                  onSubmit({ data: result.data });
+                  onClose();
+                }
               }}
             >
               Import

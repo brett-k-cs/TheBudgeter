@@ -2,6 +2,8 @@ export interface JwtPayload {
   id: number;
   name: string;
   email: string;
+  exp?: number; // Optional expiration field
+  iat?: number; // Optional issued at field
 }
 
 import jwt from 'jsonwebtoken';

@@ -56,7 +56,10 @@ export function AnalyticsWidgetSummary({
       },
     },
     tooltip: {
-      y: { formatter: (value: number) => fNumber(value), title: { formatter: () => '' } },
+      y: {
+        formatter: (value: number) => (color != 'error' ? "$" : "") + fNumber(value),
+        title: { formatter: () => '' }
+      },
     },
     markers: {
       strokeWidth: 0,

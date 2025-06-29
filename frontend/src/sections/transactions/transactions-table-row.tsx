@@ -9,6 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import MenuItem, { menuItemClasses } from '@mui/material/MenuItem';
 
 import { fDateTime } from 'src/utils/format-time';
+import { handleRequest } from 'src/utils/handle-request';
 
 import { categories } from 'src/_mock/_categories';
 
@@ -30,14 +31,25 @@ type TransactionsTableRowProps = {
   row: TransactionProps;
   selected: boolean;
   onSelectRow: () => void;
+  onDeleteRow: (id: any) => void;
 };
 
-export function TransactionsTableRow({ row, selected, onSelectRow }: TransactionsTableRowProps) {
+export function TransactionsTableRow({ row, selected, onSelectRow, onDeleteRow }: TransactionsTableRowProps) {
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
 
   const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setOpenPopover(event.currentTarget);
   }, []);
+
+  const handleDeleteRow = useCallback(async () => {
+    console.log(`Deleting transaction with ID: ${row.id}`);
+
+    await handleRequest(`/api/transactions/${row.id}`,'DELETE');
+
+    setOpenPopover(null);
+
+    onDeleteRow(row.id);
+  }, [row.id]);
 
   const handleClosePopover = useCallback(() => {
     setOpenPopover(null);
@@ -57,7 +69,7 @@ export function TransactionsTableRow({ row, selected, onSelectRow }: Transaction
         <TableCell>{categories.find(a => a.id == row.category)?.label || row.category}</TableCell>
 
         <TableCell>
-          <Label color={row.type == 'deposit' ? 'success' : 'error'}>${row.amount}</Label>
+          <Label color={row.type == 'deposit' ? 'success' : 'error'}>${Math.abs(row.amount).toFixed(2)}</Label>
         </TableCell>
 
         <TableCell align="right">
@@ -95,7 +107,7 @@ export function TransactionsTableRow({ row, selected, onSelectRow }: Transaction
             Edit
           </MenuItem>
 
-          <MenuItem onClick={handleClosePopover} sx={{ color: 'error.main' }}>
+          <MenuItem onClick={handleDeleteRow} sx={{ color: 'error.main' }}>
             <Iconify icon="solar:trash-bin-trash-bold" />
             Delete
           </MenuItem>
