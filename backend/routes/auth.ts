@@ -111,4 +111,15 @@ router.post('/login', async (req: Request<{}, {}, LoginRequestBody>, res: Respon
   res.status(200).json({ success: true, message: 'Login successful' });
 });
 
+router.post('/logout', (req: Request, res: Response) => {
+  // Clear the refresh token cookie
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+  
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
+});
+
 export const authRouter = router;

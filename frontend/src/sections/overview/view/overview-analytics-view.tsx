@@ -24,7 +24,7 @@ export function OverviewAnalyticsView() {
   // Fetch all summary data
   useEffect(() => {
     const fetchSummaries = async () => {
-      const responseReport = await handleRequest('/api/dashboard/monthlyReport');
+      const responseReport = await handleRequest('/api/dashboard/monthlyReport', 'GET', undefined, true);
       if (responseReport?.success) {
         setMonthlyIncome({
           labels: responseReport.income.labels,
@@ -36,7 +36,7 @@ export function OverviewAnalyticsView() {
         });
       }
 
-      const responseSpendingByCategory = await handleRequest('/api/dashboard/spendingByCategory');
+      const responseSpendingByCategory = await handleRequest('/api/dashboard/spendingByCategory', 'GET', undefined, true);
       if (responseSpendingByCategory?.success) {
         setSpendingByCategory({
           labels: responseSpendingByCategory.data.labels,

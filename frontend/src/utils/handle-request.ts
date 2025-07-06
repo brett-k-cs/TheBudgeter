@@ -27,6 +27,7 @@ export async function handleRequest(
       method,
       headers,
       body: JSON.stringify(body),
+      credentials: 'include', // Include cookies for refresh token
     });
 
     if (response.headers.get('x-access-token')) {
@@ -38,6 +39,15 @@ export async function handleRequest(
     }
 
     if (!response.ok) {
+      // Handle authentication failures
+      if (response.status === 401 || response.status === 403) {
+        // Clear stored tokens
+        localStorage.removeItem('accessToken');
+        // Redirect to sign-in page
+        window.location.href = '/sign-in';
+        return undefined;
+      }
+
       if (response.body) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Request failed with status ' + response.status);
