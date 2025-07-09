@@ -193,7 +193,7 @@ export function TransactionsView() {
                   { id: 'date', label: 'Date' },
                   { id: 'description', label: 'Description' },
                   { id: 'category', label: 'Category' },
-                  { id: 'amount', label: 'Amount' },
+                  { id: 'amount', label: `Amount${filterName != "" ? ` ($${dataFiltered.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)})` : ""}` },
                   { id: '' },
                 ]}
               />

@@ -1,15 +1,15 @@
 import { CONFIG } from 'src/config-global';
 
-import { ProductsView } from 'src/sections/product/view';
+import { BudgetsView } from 'src/sections/budgets/view';
 
 // ----------------------------------------------------------------------
 
 export default function Page() {
   return (
     <>
-      <title>{`Products - ${CONFIG.appName}`}</title>
+      <title>{`Budgets - ${CONFIG.appName}`}</title>
 
-      <ProductsView />
+      <BudgetsView />
     </>
   );
 }

@@ -11,12 +11,12 @@ router.get('/monthlyReport', async (req, res) => {
   const monthsToSubtract = 8;
   const startYear = now.getFullYear() - (now.getMonth() < monthsToSubtract ? 1 : 0);
   const startMonthIndex = ((now.getMonth() - monthsToSubtract) % 12 + 12) % 12;
-  const startMonth = new Date(startYear, startMonthIndex, 1);
+  const startMonth = new Date(startYear, startMonthIndex, 1, 0, 0, 0, 0); // Set to the first day of the month at midnight
   const startDateNumber = startMonth.getTime();
 
   const data = await Transaction.findAll({
     order: [['date', 'ASC']],
-    attributes: ['amount', 'date', 'type'],
+    attributes: ['amount', 'date', 'type', 'category'],
     where: { 
       userId: req.user!.id,
       // type: 'deposit',
@@ -28,7 +28,7 @@ router.get('/monthlyReport', async (req, res) => {
 
   const months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
 
-  const monthlyIncome = data.filter(a => a.type == 'deposit').reduce((acc: Record<string, number>, transaction) => {
+  const monthlyIncome = data.filter(a => a.type == 'deposit' && a.category == "miscellaneous").reduce((acc: Record<string, number>, transaction) => {
     const month = months[new Date(transaction.date).getMonth()]; // for jan-dec
     if (!acc[month])
       acc[month] = 0;
@@ -40,12 +40,12 @@ router.get('/monthlyReport', async (req, res) => {
   const incomeLabels = Object.keys(monthlyIncome);
   const incomeValues = Object.values(monthlyIncome);
 
-  const monthlySpending = data.filter(a => a.type == 'withdrawal').reduce((acc: Record<string, number>, transaction) => {
+  const monthlySpending = data.filter(a => a.type == 'withdrawal' || (a.type == "deposit" && a.category != "miscellaneous")).reduce((acc: Record<string, number>, transaction) => {
     const month = months[new Date(transaction.date).getMonth()]; // for jan-dec
     if (!acc[month])
       acc[month] = 0;
     
-    acc[month] += parseFloat(transaction.amount.toString());
+    acc[month] += parseFloat(transaction.amount.toString()) * (transaction.type == 'withdrawal' ? 1 : -1);
     return acc;
   }, {});
   const spendingLabels = Object.keys(monthlySpending);

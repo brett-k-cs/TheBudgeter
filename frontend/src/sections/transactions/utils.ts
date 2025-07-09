@@ -72,13 +72,26 @@ export function applyFilter({ inputData, comparator, filterName }: ApplyFilterPr
   inputData = stabilizedThis.map((el) => el[0]);
 
   if (filterName) {
-    inputData = inputData.filter(
-      (transaction) => transaction.description.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
-        transaction.category.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
-        transaction.type.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
-        transaction.amount.toString().toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
-        fDateTime(transaction.date).toLowerCase().indexOf(filterName.toLowerCase()) !== -1
-    );
+    if (filterName.includes("OR")) {
+      const filterParts = filterName.split("OR").map(part => part.trim()).filter(part => part.length > 0);
+      inputData = inputData.filter((transaction) =>
+        filterParts.some(part =>
+          transaction.description.toLowerCase().includes(part.toLowerCase()) ||
+          transaction.category.toLowerCase().includes(part.toLowerCase()) ||
+          transaction.type.toLowerCase().includes(part.toLowerCase()) ||
+          transaction.amount.toString().toLowerCase().includes(part.toLowerCase()) ||
+          fDateTime(transaction.date).toLowerCase().includes(part.toLowerCase())
+        )
+      );
+    } else {
+      inputData = inputData.filter(
+        (transaction) => transaction.description.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
+          transaction.category.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
+          transaction.type.toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
+          transaction.amount.toString().toLowerCase().indexOf(filterName.toLowerCase()) !== -1 ||
+          fDateTime(transaction.date).toLowerCase().indexOf(filterName.toLowerCase()) !== -1
+      );
+    }
   }
 
   return inputData;
