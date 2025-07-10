@@ -1,6 +1,9 @@
+import dayjs from 'dayjs';
+
 import { fDateTime } from 'src/utils/format-time';
 
 import type { TransactionProps } from './transactions-table-row';
+import type { FilterOptions } from './transactions-table-toolbar';
 
 // ----------------------------------------------------------------------
 
@@ -57,10 +60,11 @@ export function getComparator<Key extends keyof any>(
 type ApplyFilterProps = {
   inputData: TransactionProps[];
   filterName: string;
+  filterOptions: FilterOptions;
   comparator: (a: any, b: any) => number;
 };
 
-export function applyFilter({ inputData, comparator, filterName }: ApplyFilterProps) {
+export function applyFilter({ inputData, comparator, filterName, filterOptions }: ApplyFilterProps) {
   const stabilizedThis = inputData.map((el, index) => [el, index] as const);
 
   stabilizedThis.sort((a, b) => {
@@ -71,6 +75,7 @@ export function applyFilter({ inputData, comparator, filterName }: ApplyFilterPr
 
   inputData = stabilizedThis.map((el) => el[0]);
 
+  // Apply text search filter
   if (filterName) {
     if (filterName.includes("OR")) {
       const filterParts = filterName.split("OR").map(part => part.trim()).filter(part => part.length > 0);
@@ -92,6 +97,41 @@ export function applyFilter({ inputData, comparator, filterName }: ApplyFilterPr
           fDateTime(transaction.date).toLowerCase().indexOf(filterName.toLowerCase()) !== -1
       );
     }
+  }
+
+  // Apply advanced filters
+  if (filterOptions.category) {
+    inputData = inputData.filter(transaction => transaction.category === filterOptions.category);
+  }
+
+  if (filterOptions.type) {
+    inputData = inputData.filter(transaction => transaction.type === filterOptions.type);
+  }
+
+  if (filterOptions.dateFrom) {
+    inputData = inputData.filter(transaction => 
+      dayjs(transaction.date).isAfter(filterOptions.dateFrom, 'day') || 
+      dayjs(transaction.date).isSame(filterOptions.dateFrom, 'day')
+    );
+  }
+
+  if (filterOptions.dateTo) {
+    inputData = inputData.filter(transaction => 
+      dayjs(transaction.date).isBefore(filterOptions.dateTo, 'day') || 
+      dayjs(transaction.date).isSame(filterOptions.dateTo, 'day')
+    );
+  }
+
+  if (filterOptions.amountMin && !isNaN(parseFloat(filterOptions.amountMin))) {
+    inputData = inputData.filter(transaction => 
+      Math.abs(transaction.amount) >= parseFloat(filterOptions.amountMin)
+    );
+  }
+
+  if (filterOptions.amountMax && !isNaN(parseFloat(filterOptions.amountMax))) {
+    inputData = inputData.filter(transaction => 
+      Math.abs(transaction.amount) <= parseFloat(filterOptions.amountMax)
+    );
   }
 
   return inputData;

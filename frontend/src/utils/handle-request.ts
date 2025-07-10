@@ -6,7 +6,7 @@ interface ApiResponse {
 
 export async function handleRequest(
   url: string,
-  method: 'GET' | 'POST' | 'DELETE' = 'GET',
+  method: 'GET' | 'POST' | 'DELETE' | 'PUT' = 'GET',
   setError: (error: string) => void = (_: string) => {},
   useAuthentication: boolean = false,
   body?: {}
