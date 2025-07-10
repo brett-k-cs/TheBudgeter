@@ -7,6 +7,7 @@ import { authenticateTokenMiddelware } from './middleware/authMiddleware.js';
 import { authRouter } from './routes/auth.js';
 import { summariesRouter } from './routes/summaries.js';
 import { transactionsRouter } from './routes/transactions.js';
+import { budgetsRouter } from './routes/budgets.js';
 
 const app = express();
 
@@ -19,5 +20,6 @@ app.use(express.json());
 app.use('/api/auth', authRouter);
 app.use('/api/dashboard', authenticateTokenMiddelware, summariesRouter);
 app.use('/api/transactions', authenticateTokenMiddelware, transactionsRouter);
+app.use('/api/budgets', authenticateTokenMiddelware, budgetsRouter);
 
 export default app;

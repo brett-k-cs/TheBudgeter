@@ -1,7 +1,7 @@
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LinearProgress from '@mui/material/LinearProgress';
 
@@ -9,31 +9,34 @@ import { fCurrency } from 'src/utils/format-number';
 
 import { categories } from 'src/_mock/_categories';
 
+import { Iconify } from 'src/components/iconify';
+
 // ----------------------------------------------------------------------
 
-export type BudgetProps = {
+export interface BudgetProps {
   id: string;
   name: string;
   startDate: Date;
   endDate: Date;
   categories: {
-    [key: string]: {
+    [categoryId: string]: {
       budgeted: number;
       spent: number;
     };
   };
-};
+}
 
-export function BudgetItem({ budget }: { budget: BudgetProps }) {
+interface BudgetItemProps {
+  budget: BudgetProps;
+  onDelete?: (budgetId: string) => void;
+}
+
+export function BudgetItem({ budget, onDelete }: BudgetItemProps) {
   // Calculate total budgeted and spent amounts
-  const budgetedAmount = Object.values(budget.categories).reduce(
-    (total, category) => total + category.budgeted,
-    0
-  ) || 0;
-  const spentAmount = Object.values(budget.categories).reduce(
-    (total, category) => total + category.spent,
-    0
-  ) || 0;
+  const budgetedAmount =
+    Object.values(budget.categories).reduce((total, category) => total + category.budgeted, 0) || 0;
+  const spentAmount =
+    Object.values(budget.categories).reduce((total, category) => total + category.spent, 0) || 0;
   const isOverBudget = spentAmount > budgetedAmount;
   const remainingAmount = budgetedAmount - spentAmount;
   const spentPercentage = budgetedAmount > 0 ? (spentAmount / budgetedAmount) * 100 : 0;
@@ -56,8 +59,30 @@ export function BudgetItem({ budget }: { budget: BudgetProps }) {
     return category ? category.label : categoryId;
   };
 
+  const handleDelete = () => {
+    if (onDelete && window.confirm('Are you sure you want to delete this budget?')) {
+      onDelete(budget.id);
+    }
+  };
+
   return (
-    <Card sx={{ p: 3, height: '100%' }}>
+    <Card sx={{ p: 3, height: '100%', position: 'relative' }}>
+      <IconButton
+        sx={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          color: 'text.secondary',
+          '&:hover': {
+            color: 'error.main',
+            backgroundColor: 'error.lighter',
+          },
+        }}
+        onClick={handleDelete}
+      >
+        <Iconify icon="solar:trash-bin-trash-bold" width={20} height={20} />
+      </IconButton>
+
       <Stack spacing={2} sx={{ height: '100%' }}>
         <Box>
           <Typography variant="h6" noWrap>
@@ -77,8 +102,7 @@ export function BudgetItem({ budget }: { budget: BudgetProps }) {
               const categorySpent = category.spent; // You'll need to implement this function
               const budgeted = category.budgeted;
 
-              const spentPercentageCat =
-                budgeted > 0 ? (categorySpent / budgeted) * 100 : 0;
+              const spentPercentageCat = budgeted > 0 ? (categorySpent / budgeted) * 100 : 0;
               const isOverBudgetCat = categorySpent > budgeted;
               const remainingAmountCat = budgeted - categorySpent;
 
@@ -96,7 +120,9 @@ export function BudgetItem({ budget }: { budget: BudgetProps }) {
                   <LinearProgress
                     variant="determinate"
                     value={Math.min(spentPercentageCat, 100)}
-                    color={isOverBudgetCat ? 'error' : spentPercentageCat > 80 ? 'warning' : 'primary'}
+                    color={
+                      isOverBudgetCat ? 'error' : spentPercentageCat > 80 ? 'warning' : 'primary'
+                    }
                     sx={{ height: 6, borderRadius: 3, mb: 0.5 }}
                   />
 
