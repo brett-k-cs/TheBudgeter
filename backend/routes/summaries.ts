@@ -55,14 +55,20 @@ router.get('/monthlyReport', async (req, res) => {
 });
 
 router.get('/spendingByCategory', async (req, res) => {
-  const startDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const { startDate, endDate } = req.query;
+  
+  // Default to current month if no dates provided
+  const start = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const end = endDate ? new Date(endDate as string) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+
   const data = await Transaction.findAll({
     attributes: ['amount', 'date', 'category'],
     where: { 
       userId: req.user!.id,
       type: 'withdrawal',
       date: {
-        [Op.gte]: startDate.getTime(),
+        [Op.gte]: start.getTime(),
+        [Op.lte]: end.getTime(),
       },
     },
   });
@@ -77,6 +83,65 @@ router.get('/spendingByCategory', async (req, res) => {
   const values = Object.values(categories);
 
   res.json({ success: true, data: { labels, values } });
+});
+
+// New endpoint for category drill-down
+router.get('/categoryTransactions', async (req, res) => {
+  const { category, startDate, endDate } = req.query;
+  
+  if (!category) {
+    res.status(400).json({ error: 'Category is required' });
+    return;
+  }
+
+  // Default to current month if no dates provided
+  const start = startDate ? new Date(startDate as string) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const end = endDate ? new Date(endDate as string) : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59);
+
+  const transactions = await Transaction.findAll({
+    order: [['date', 'DESC']],
+    attributes: ['id', 'amount', 'description', 'date'],
+    where: { 
+      userId: req.user!.id,
+      type: 'withdrawal',
+      category: category as string,
+      date: {
+        [Op.gte]: start.getTime(),
+        [Op.lte]: end.getTime(),
+      },
+    },
+  });
+
+  // Group transactions by description for the pie chart
+  const transactionGroups = transactions.reduce((acc: Record<string, { total: number, count: number, transactions: any[] }>, transaction) => {
+    const description = transaction.description || 'No description';
+    if (!acc[description]) {
+      acc[description] = { total: 0, count: 0, transactions: [] };
+    }
+    acc[description].total += parseFloat(transaction.amount.toString());
+    acc[description].count += 1;
+    acc[description].transactions.push(transaction);
+    return acc;
+  }, {});
+
+  const labels = Object.keys(transactionGroups);
+  const values = Object.values(transactionGroups).map(group => group.total);
+  const details = Object.entries(transactionGroups).map(([description, group]) => ({
+    description,
+    total: group.total,
+    count: group.count,
+    transactions: group.transactions
+  }));
+
+  res.json({ 
+    success: true, 
+    data: { 
+      labels, 
+      values, 
+    details,
+      category: category as string 
+    } 
+  });
 });
 
 export const summariesRouter = router;

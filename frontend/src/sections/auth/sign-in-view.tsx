@@ -87,6 +87,11 @@ export function SignInView() {
         label="Password"
         placeholder="@demo1234"
         value={password}
+        onKeyUp={(e) => {
+          if (e.key === 'Enter') {
+            handleSignIn();
+          }
+        }}
         onChange={(e) => setPassword(e.target.value)}
         type={showPassword ? 'text' : 'password'}
         slotProps={{

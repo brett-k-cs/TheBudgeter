@@ -20,6 +20,39 @@ export function OverviewAnalyticsView() {
   const [checkingBalance, setCheckingBalance] = useState<Record<string, any>>({});
   const [primaryBudget, setPrimaryBudget] = useState<Record<string, any>>({});
   const [spendingByCategory, setSpendingByCategory] = useState<Record<string, any>>({});
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    return { startDate, endDate };
+  });
+
+  // Fetch spending by category data
+  const fetchSpendingByCategory = async (startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    
+    const url = `/api/dashboard/spendingByCategory${params.toString() ? `?${params.toString()}` : ''}`;
+    const responseSpendingByCategory = await handleRequest(url, 'GET', undefined, true);
+    
+    if (responseSpendingByCategory?.success) {
+      setSpendingByCategory({
+        labels: responseSpendingByCategory.data.labels,
+        data: responseSpendingByCategory.data.values,
+      });
+
+      console.log(
+        'Spending by Category:',
+        responseSpendingByCategory.data.values.length > 0
+          ? responseSpendingByCategory.data.values.map((value: number, index: number) => ({
+              label: responseSpendingByCategory.data.labels[index],
+              data: value,
+            }))
+          : []
+      );
+    }
+  };
 
   // Fetch all summary data
   useEffect(() => {
@@ -36,27 +69,17 @@ export function OverviewAnalyticsView() {
         });
       }
 
-      const responseSpendingByCategory = await handleRequest('/api/dashboard/spendingByCategory', 'GET', undefined, true);
-      if (responseSpendingByCategory?.success) {
-        setSpendingByCategory({
-          labels: responseSpendingByCategory.data.labels,
-          data: responseSpendingByCategory.data.values,
-        });
-
-        console.log(
-          'Spending by Category:',
-          responseSpendingByCategory.data.values.length > 0
-            ? responseSpendingByCategory.data.values.map((value: number, index: number) => ({
-                label: responseSpendingByCategory.data.labels[index],
-                data: value,
-              }))
-            : []
-        );
-      }
+      // Fetch spending by category with current date range
+      await fetchSpendingByCategory(dateRange.startDate, dateRange.endDate);
     };
 
     fetchSummaries();
-  }, []);
+  }, [dateRange.startDate, dateRange.endDate]);
+
+  const handleDateRangeChange = async (startDate: string, endDate: string) => {
+    setDateRange({ startDate, endDate });
+    await fetchSpendingByCategory(startDate, endDate);
+  };
 
   return (
     <DashboardContent maxWidth="xl">
@@ -65,6 +88,7 @@ export function OverviewAnalyticsView() {
       </Typography>
 
       <Grid container spacing={3}>
+        {/* ... existing widget summaries ... */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
             title="Monthly Income"
@@ -151,6 +175,7 @@ export function OverviewAnalyticsView() {
                       }))
                     : [],
               }}
+              onDateRangeChange={handleDateRangeChange}
             />
           </Grid>
 

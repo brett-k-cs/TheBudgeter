@@ -99,7 +99,7 @@ export function TransactionsTableRow({ row, selected, onSelectRow, onDeleteRow, 
       updatedData
     );
 
-    if (result) {
+    if (result?.success) {
       onUpdateRow(row.id, updatedData);
       setIsEditing(false);
     }

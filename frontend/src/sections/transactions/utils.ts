@@ -28,6 +28,11 @@ export function emptyRows(page: number, rowsPerPage: number, arrayLength: number
 // ----------------------------------------------------------------------
 
 function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
+  if (orderBy === 'date') {
+    return dayjs(b[orderBy] as Date).isBefore(dayjs(a[orderBy] as Date)) ?
+      -1 : 1;
+  }
+
   if (b[orderBy] < a[orderBy]) {
     return -1;
   }

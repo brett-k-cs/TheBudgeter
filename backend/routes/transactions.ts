@@ -69,6 +69,63 @@ router.post('/', async (req: Request<{}, {}, TransactionRequestBody>, res: Respo
   }
 });
 
+router.put('/:id', async (req: Request<{ id: string }, {}, TransactionRequestBody>, res: Response) => {
+  const transactionId = parseInt(req.params.id, 10);
+  if (isNaN(transactionId)) {
+    res.status(400).json({ error: 'Invalid transaction ID' });
+    return;
+  }
+  const { type, amount, description, category, date } = req.body;
+  if (!type || !amount || !description || !category || !date) {
+    res.status(400).json({ error: 'Missing required fields' });
+    return;
+  }
+
+  const userId = req.user!.id;
+
+  // further validation e.g. typeof checks
+  if (typeof type !== 'string' || typeof description !== 'string' || typeof amount !== 'number' || typeof category !== 'string') {
+    res.status(400).json({ error: 'Invalid data types' });
+    return;
+  }
+
+  if (type !== 'withdrawal' && type !== 'deposit') {
+    res.status(400).json({ error: 'Invalid transaction type' });
+    return;
+  }
+
+  if (amount <= 0) {
+    res.status(400).json({ error: 'Amount must be greater than zero' });
+    return;
+  }
+
+  const result = await Transaction.update(
+    {
+      type,
+      amount,
+      category,
+      description,
+      date: new Date(date), // Convert ISO string to Date object
+    },
+    {
+      where: {
+        id: transactionId,
+        userId,
+      },
+    }
+  );
+
+  if (result[0] === 0) {
+    res.status(404).json({ error: 'Transaction not found or does not belong to the user' });
+    return;
+  }
+
+  const updatedTransaction = await Transaction.findByPk(transactionId, {
+    attributes: ['id', 'type', 'amount', 'category', 'description', 'date'],
+  });
+  res.json({ success: true, data: updatedTransaction });
+});
+
 router.delete('/:id', async (req: Request<{ id: string }>, res: Response) => {
   const transactionId = parseInt(req.params.id, 10);
   if (isNaN(transactionId)) {
