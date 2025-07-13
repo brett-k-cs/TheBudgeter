@@ -36,6 +36,8 @@ build
 tsconfig.tsbuildinfo
 .ncurc.js
 knip.jsonc
+*.ps1
+*.zip
 
 # database files
 *.sqlite

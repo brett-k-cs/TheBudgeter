@@ -1,5 +1,9 @@
 import { Request, Response, Router } from 'express';
 
+import { Parser } from 'json2csv';
+import PDFDocument from 'pdfkit';
+import { create } from 'xmlbuilder2';
+
 import { Transaction } from '../models/transaction.js';
 
 const router = Router();
@@ -214,5 +218,219 @@ router.post('/import', async (req: Request<{}, {}, { data: TransactionRequestBod
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+
+interface ExportConfig {
+  format: 'json' | 'csv' | 'xml' | 'pdf';
+  fields: {
+    [key: string]: string; // key: field name, value: display name
+  };
+  csvDelimiter?: string;
+  dateFormat?: string;
+  includeHeaders?: boolean;
+  xmlRootElement?: string;
+  xmlItemElement?: string;
+  pdfTitle?: string;
+  pdfOrientation?: 'portrait' | 'landscape';
+  [key: string]: any; // Additional fields for future expansion
+}
+
+router.post('/export', async (req: Request<{}, {}, ExportConfig>, res: Response) => {
+  const {
+    format,
+    fields = {
+      'date': 'Date',
+      'description': 'Description',
+      'category': 'Category',
+      'type': 'Type',
+      'amount': 'Amount',
+      'createdAt': 'Created At',
+      'updatedAt': 'Updated At',      
+    },
+    csvDelimiter = ',',
+    dateFormat = 'YYYY-MM-DD',
+    includeHeaders = true,
+    xmlRootElement = 'transactions',
+    xmlItemElement = 'transaction',
+    pdfTitle = 'Transaction Report',
+    pdfOrientation = 'portrait'
+  } = req.body;
+
+  if (!format || !['json', 'csv', 'xml', 'pdf'].includes(format)) {
+    res.status(400).json({ error: 'Invalid or missing format' });
+    return;
+  }
+
+  try {
+    // Fetch transactions for the user
+    const transactions = await Transaction.findAll({
+      order: [['date', 'DESC']],
+      attributes: ['id', 'type', 'amount', 'category', 'description', 'date', 'createdAt', 'updatedAt'],
+      where: { 
+        userId: req.user!.id,
+      },
+    });
+
+    if (transactions.length === 0) {
+      res.status(404).json({ error: 'No transactions found' });
+      return;
+    }
+
+    // Transform data based on configuration
+    const transformedData = transactions.map(transaction => {
+      const data = transaction.toJSON();
+      const filtered : { [key: string]: any } = {};
+
+      Object.keys(fields).forEach(field => {
+        if (field in data) {
+          let key = field;
+          let value = data[field as keyof typeof data];
+
+          // Apply key naming
+          switch (key) {
+            case 'date':
+            case 'createdAt':
+            case 'updatedAt':
+              // Format date if specified
+              value = formatDate(new Date(value as string), dateFormat);
+              break;
+            case 'type':
+              // Convert type to a more readable format if needed
+              value = value === 'withdrawal' ? 'Withdrawal' : 'Deposit';
+              break;
+          }
+
+          if (fields[field]) {
+            key = fields[field];
+          }
+
+          filtered[key] = value;
+        }
+      });
+
+      return filtered;
+    });
+
+    // Generate export based on format
+    switch (format) {
+      case 'json':
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', 'attachment; filename="transactions.json"');
+        res.json(transformedData);
+        break;
+
+      case 'csv':
+        const parser = new Parser({ 
+          delimiter: csvDelimiter,
+          header: includeHeaders,
+          fields: Object.values(fields)
+        });
+
+        const csv = parser.parse(transformedData);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+        res.send(csv);
+        break;
+
+      case 'xml':
+        const xmlObj: any = {};
+        xmlObj[xmlRootElement] = {};
+        xmlObj[xmlRootElement][xmlItemElement] = transformedData;
+        
+        const xmlDoc = create(xmlObj);
+        const xml = xmlDoc.end({ prettyPrint: true });
+        
+        res.setHeader('Content-Type', 'application/xml');
+        res.setHeader('Content-Disposition', 'attachment; filename="transactions.xml"');
+        res.send(xml);
+        break;
+
+      case 'pdf':
+        const doc = new PDFDocument({ 
+          size: 'A4', 
+          layout: pdfOrientation as 'portrait' | 'landscape'
+        });
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="transactions.pdf"');
+        
+        doc.pipe(res);
+        
+        // PDF Title
+        doc.fontSize(16).text(pdfTitle, { align: 'center' });
+        doc.moveDown();
+        
+        // Table headers
+        const headers = Object.values(fields);
+        
+        doc.fontSize(10);
+        const startX = 50;
+        const startY = doc.y;
+        const columnWidth = (doc.page.width - 100) / headers.length;
+        
+        // Draw headers
+        headers.forEach((header, index) => {
+          doc.text(header, startX + (index * columnWidth), startY, { 
+            width: columnWidth, 
+            align: 'left' 
+          });
+        });
+        
+        doc.moveDown();
+        
+        // Draw data rows
+        transformedData.forEach((row, rowIndex) => {
+          const y = doc.y;
+          headers.forEach((header, colIndex) => {
+            let value = row[header] || '';
+            if (doc.widthOfString(value) > columnWidth) {
+              while (doc.widthOfString(value + "...") > (columnWidth - 8)) {
+                value = value.substring(0, value.length - 2);
+              }
+              value += '...';
+            }
+
+            doc.text(String(value), startX + (colIndex * columnWidth), y, { 
+              width: columnWidth, 
+              align: 'left' 
+            });
+          });
+          doc.moveDown(0.5);
+          
+          // Add new page if needed
+          if (doc.y > doc.page.height - 100) {
+            doc.addPage();
+          }
+        });
+        
+        doc.end();
+        break;
+
+      default:
+        res.status(400).json({ error: 'Unsupported format' });
+    }
+  } catch (error) {
+    console.error('Error exporting transactions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Helper function to format dates
+function formatDate(date: Date, format: string): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+
+  return format
+    .replace('YYYY', String(year))
+    .replace('MM', month)
+    .replace('DD', day)
+    .replace('HH', hours)
+    .replace('mm', minutes)
+    .replace('ss', seconds);
+}
 
 export const transactionsRouter = router;

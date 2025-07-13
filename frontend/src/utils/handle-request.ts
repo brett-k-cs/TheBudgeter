@@ -9,7 +9,8 @@ export async function handleRequest(
   method: 'GET' | 'POST' | 'DELETE' | 'PUT' = 'GET',
   setError: (error: string) => void = (_: string) => {},
   useAuthentication: boolean = false,
-  body?: {}
+  body?: {},
+  responseType: 'json' | 'response' = 'json'
 ): Promise<ApiResponse | undefined> {
   try {
     const headers : any = {
@@ -52,6 +53,10 @@ export async function handleRequest(
         const errorData = await response.json();
         throw new Error(errorData.error || 'Request failed with status ' + response.status);
       }
+    }
+
+    if (responseType === 'response') {
+      return response;
     }
 
     const data = await response.json();

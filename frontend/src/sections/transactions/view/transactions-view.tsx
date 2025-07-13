@@ -20,6 +20,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
+import { ExportModal } from 'src/components/export-modal/export-modal';
 import { ImportTransactionsModal } from 'src/components/csv-importer/csv-importer';
 
 import { TableNoData } from '../table-no-data';
@@ -62,6 +63,7 @@ export function TransactionsView() {
 
   const [openNew, setOpenNew] = useState(false);
   const [openImport, setOpenImport] = useState(false);
+  const [openExport, setOpenExport] = useState(false);
 
   const handleUpdateTransaction = useCallback((id: string, updatedData: Partial<TransactionProps>) => {
     setTransactions((prev) =>
@@ -132,6 +134,10 @@ export function TransactionsView() {
         onClose={() => setOpenImport(false)}
         onSubmit={handleImportTransactions}
       />
+      <ExportModal
+        open={openExport}
+        onClose={() => setOpenExport(false)}
+      />
       <NewTransactionModal
         open={openNew}
         onClose={() => setOpenNew(false)}
@@ -147,6 +153,15 @@ export function TransactionsView() {
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
           Transactions
         </Typography>
+        <Button
+          variant="contained"
+          color="inherit"
+          startIcon={<Iconify icon="solar:export-bold" />}
+          onClick={() => setOpenExport(true)}
+          sx={{ mr: 1 }}
+        >
+          Export Transactions
+        </Button>
         <Button
           variant="contained"
           color="inherit"
