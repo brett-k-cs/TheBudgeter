@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import { Budget } from '../models/budget.js';
 import { Transaction } from '../models/transaction.js';
 import { BudgetCategory } from '../models/budgetCategory.js';
+import { BudgetTransactionExclusion } from '../models/budgetTransactionExclusion.js';
 
 const router = Router();
 
@@ -34,6 +35,13 @@ router.get('/', async (req, res) => {
       budgets.map(async (budget) => {
         const categories: { [key: string]: { budgeted: number; spent: number } } = {};
         
+        // Get excluded transaction IDs for this budget
+        const excludedTransactions = await BudgetTransactionExclusion.findAll({
+          where: { budgetId: budget.id },
+          attributes: ['transactionId'],
+        });
+        const excludedTransactionIds = excludedTransactions.map(exc => exc.transactionId);
+        
         for (const budgetCategory of budget.budgetCategories!) {
           const spent = await Transaction.sum('amount', {
             where: {
@@ -42,6 +50,9 @@ router.get('/', async (req, res) => {
               type: 'withdrawal',
               date: {
                 [Op.between]: [budget.startDate, budget.endDate],
+              },
+              id: {
+                [Op.notIn]: excludedTransactionIds.length > 0 ? excludedTransactionIds : [0], // Use [0] as fallback to avoid empty array
               },
             },
           });
@@ -98,6 +109,140 @@ router.post('/', async (req: Request<{}, {}, BudgetRequestBody>, res: Response) 
     res.status(201).json({ success: true, data: { id: budget.id } });
   } catch (error) {
     console.error('Error creating budget:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get transactions for a budget category
+router.get('/:id/categories/:categoryId/transactions', async (req: Request<{ id: string; categoryId: string }>, res: Response) => {
+  const budgetId = parseInt(req.params.id, 10);
+  const { categoryId } = req.params;
+  
+  if (isNaN(budgetId)) {
+    res.status(400).json({ error: 'Invalid budget ID' });
+    return;
+  }
+
+  try {
+    const budget = await Budget.findByPk(budgetId);
+    
+    if (!budget) {
+      res.status(404).json({ error: 'Budget not found' });
+      return;
+    }
+
+    if (budget.userId !== req.user!.id) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    // Get all transactions for this category within the budget period
+    const transactions = await Transaction.findAll({
+      where: {
+        userId: req.user!.id,
+        category: categoryId,
+        type: 'withdrawal',
+        date: {
+          [Op.between]: [budget.startDate, budget.endDate],
+        },
+      },
+      order: [['date', 'DESC']],
+      attributes: ['id', 'amount', 'description', 'date'],
+    });
+
+    // Get excluded transaction IDs for this budget
+    const excludedTransactions = await BudgetTransactionExclusion.findAll({
+      where: { 
+        budgetId: budget.id,
+        transactionId: {
+          [Op.in]: transactions.map(t => t.id)
+        }
+      },
+      attributes: ['transactionId'],
+    });
+    const excludedTransactionIds = new Set(excludedTransactions.map(exc => exc.transactionId));
+
+    // Add exclusion status to transactions
+    const transactionsWithExclusion = transactions.map(transaction => ({
+      id: transaction.id,
+      amount: parseFloat(transaction.amount.toString()),
+      description: transaction.description,
+      date: transaction.date,
+      excluded: excludedTransactionIds.has(transaction.id),
+    }));
+
+    res.json({ success: true, data: transactionsWithExclusion });
+  } catch (error) {
+    console.error('Error fetching budget category transactions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Toggle transaction exclusion for a budget
+router.post('/:id/transactions/:transactionId/toggle-exclusion', async (req: Request<{ id: string; transactionId: string }>, res: Response) => {
+  const budgetId = parseInt(req.params.id, 10);
+  const transactionId = parseInt(req.params.transactionId, 10);
+  
+  if (isNaN(budgetId) || isNaN(transactionId)) {
+    res.status(400).json({ error: 'Invalid budget ID or transaction ID' });
+    return;
+  }
+
+  try {
+    const budget = await Budget.findByPk(budgetId);
+    
+    if (!budget) {
+      res.status(404).json({ error: 'Budget not found' });
+      return;
+    }
+
+    if (budget.userId !== req.user!.id) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    // Verify the transaction belongs to the user and is within the budget period
+    const transaction = await Transaction.findOne({
+      where: {
+        id: transactionId,
+        userId: req.user!.id,
+        date: {
+          [Op.between]: [budget.startDate, budget.endDate],
+        },
+      },
+    });
+
+    if (!transaction) {
+      res.status(404).json({ error: 'Transaction not found or not within budget period' });
+      return;
+    }
+
+    // Check if exclusion already exists
+    const existingExclusion = await BudgetTransactionExclusion.findOne({
+      where: {
+        budgetId: budget.id,
+        transactionId: transaction.id,
+      },
+    });
+
+    let excluded: boolean;
+
+    if (existingExclusion) {
+      // Remove exclusion
+      await existingExclusion.destroy();
+      excluded = false;
+    } else {
+      // Add exclusion
+      await BudgetTransactionExclusion.create({
+        budgetId: budget.id,
+        transactionId: transaction.id,
+      });
+      excluded = true;
+    }
+
+    res.json({ success: true, data: { excluded } });
+  } catch (error) {
+    console.error('Error toggling transaction exclusion:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

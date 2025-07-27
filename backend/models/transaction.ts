@@ -69,9 +69,13 @@ export const Transaction = sequelize.define<TransactionInstance>(
 );
 
 import { User } from './user.js';
+import { BudgetTransactionExclusion } from './budgetTransactionExclusion.js';
 
 Transaction.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
 User.hasMany(Transaction, { foreignKey: 'userId' });
+
+Transaction.hasMany(BudgetTransactionExclusion, { foreignKey: 'transactionId', as: 'exclusions', onDelete: 'CASCADE' });
+BudgetTransactionExclusion.belongsTo(Transaction, { foreignKey: 'transactionId' });
 
 // Fix transaction table using labels instead of ids for categories
 const categories = [
@@ -90,7 +94,8 @@ const categories = [
   { "id": "automotive", "label": "Automotive" },
   { "id": "insurance", "label": "Insurance" },
   { "id": "charity_donations", "label": "Charity & Donations" },
-  { "id": "miscellaneous", "label": "Miscellaneous" }
+  { "id": "miscellaneous", "label": "Miscellaneous" },
+  { "id": "income", "label": "Income" }
 ]
 
 Transaction.findAll({

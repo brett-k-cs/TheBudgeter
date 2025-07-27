@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
@@ -10,6 +12,8 @@ import { fCurrency } from 'src/utils/format-number';
 import { categories } from 'src/_mock/_categories';
 
 import { Iconify } from 'src/components/iconify';
+
+import { BudgetTransactionsModal } from './budget-transactions-modal';
 
 // ----------------------------------------------------------------------
 
@@ -29,9 +33,12 @@ export interface BudgetProps {
 interface BudgetItemProps {
   budget: BudgetProps;
   onDelete?: (budgetId: string) => void;
+  onRefresh?: () => void;
 }
 
-export function BudgetItem({ budget, onDelete }: BudgetItemProps) {
+export function BudgetItem({ budget, onDelete, onRefresh }: BudgetItemProps) {
+  const [transactionsModalOpen, setTransactionsModalOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   // Calculate total budgeted and spent amounts
   const budgetedAmount =
     Object.values(budget.categories).reduce((total, category) => total + category.budgeted, 0) || 0;
@@ -62,6 +69,17 @@ export function BudgetItem({ budget, onDelete }: BudgetItemProps) {
   const handleDelete = () => {
     if (onDelete && window.confirm('Are you sure you want to delete this budget?')) {
       onDelete(budget.id);
+    }
+  };
+
+  const handleCategoryClick = (categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+    setTransactionsModalOpen(true);
+  };
+
+  const handleTransactionToggle = () => {
+    if (onRefresh) {
+      onRefresh();
     }
   };
 
@@ -107,7 +125,19 @@ export function BudgetItem({ budget, onDelete }: BudgetItemProps) {
               const remainingAmountCat = budgeted - categorySpent;
 
               return (
-                <Box key={categoryId}>
+                <Box 
+                  key={categoryId}
+                  onClick={() => handleCategoryClick(categoryId)}
+                  sx={{
+                    cursor: 'pointer',
+                    p: 1,
+                    borderRadius: 1,
+                    transition: 'background-color 0.2s',
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
+                  }}
+                >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography variant="body2" fontWeight="medium">
                       {getCategoryLabel(categoryId)}
@@ -167,6 +197,14 @@ export function BudgetItem({ budget, onDelete }: BudgetItemProps) {
           </Box>
         </Box>
       </Stack>
+
+      <BudgetTransactionsModal
+        open={transactionsModalOpen}
+        onClose={() => setTransactionsModalOpen(false)}
+        budgetId={budget.id}
+        categoryId={selectedCategoryId}
+        onTransactionToggle={handleTransactionToggle}
+      />
     </Card>
   );
 }

@@ -56,9 +56,13 @@ export const Budget = sequelize.define<BudgetInstance>(
 // Associations
 import { User } from './user.js';
 import { BudgetCategory } from './budgetCategory.js';
+import { BudgetTransactionExclusion } from './budgetTransactionExclusion.js';
 
 Budget.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
 User.hasMany(Budget, { foreignKey: 'userId' });
 
 Budget.hasMany(BudgetCategory, { foreignKey: 'budgetId', as: 'budgetCategories', onDelete: 'CASCADE' });
 BudgetCategory.belongsTo(Budget, { foreignKey: 'budgetId' });
+
+Budget.hasMany(BudgetTransactionExclusion, { foreignKey: 'budgetId', as: 'exclusions', onDelete: 'CASCADE' });
+BudgetTransactionExclusion.belongsTo(Budget, { foreignKey: 'budgetId' });

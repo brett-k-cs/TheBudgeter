@@ -124,7 +124,7 @@ export function BudgetsView() {
       <Grid container spacing={3}>
         {budgets.map((budget) => (
           <Grid key={budget.id} size={{ xs: 12, sm: 6, lg: 4 }}>
-            <BudgetItem budget={budget} onDelete={handleDeleteBudget} />
+            <BudgetItem budget={budget} onDelete={handleDeleteBudget} onRefresh={fetchBudgets} />
           </Grid>
         ))}
       </Grid>

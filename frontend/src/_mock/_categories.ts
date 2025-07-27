@@ -14,5 +14,6 @@ export const categories = [
   { "id": "automotive", "label": "Automotive" },
   { "id": "insurance", "label": "Insurance" },
   { "id": "charity_donations", "label": "Charity & Donations" },
-  { "id": "miscellaneous", "label": "Miscellaneous" }
+  { "id": "miscellaneous", "label": "Miscellaneous" },
+  { "id": "income", "label": "Income" }
 ]

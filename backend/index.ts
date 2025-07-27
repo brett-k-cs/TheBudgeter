@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { initializeDatabase } from './db.js';
-import { User } from './models/user.js';
 
 const PORT = process.env.PORT || 3000;
 

@@ -28,7 +28,7 @@ router.get('/monthlyReport', async (req, res) => {
 
   const months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
 
-  const monthlyIncome = data.filter(a => a.type == 'deposit' && a.category == "miscellaneous").reduce((acc: Record<string, number>, transaction) => {
+  const monthlyIncome = data.filter(a => a.type == 'deposit' && a.category == "income").reduce((acc: Record<string, number>, transaction) => {
     const month = months[new Date(transaction.date).getMonth()]; // for jan-dec
     if (!acc[month])
       acc[month] = 0;
@@ -40,7 +40,7 @@ router.get('/monthlyReport', async (req, res) => {
   const incomeLabels = Object.keys(monthlyIncome);
   const incomeValues = Object.values(monthlyIncome);
 
-  const monthlySpending = data.filter(a => a.type == 'withdrawal' || (a.type == "deposit" && a.category != "miscellaneous")).reduce((acc: Record<string, number>, transaction) => {
+  const monthlySpending = data.filter(a => a.type == 'withdrawal' || (a.type == "deposit" && a.category != "income")).reduce((acc: Record<string, number>, transaction) => {
     const month = months[new Date(transaction.date).getMonth()]; // for jan-dec
     if (!acc[month])
       acc[month] = 0;
