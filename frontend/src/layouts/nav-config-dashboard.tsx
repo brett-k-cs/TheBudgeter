@@ -33,6 +33,11 @@ export const navData = [
     //   </Label>
     // ),
   },
+  {
+    title: 'Accounts',
+    path: '/accounts',
+    icon: icon('ic-banking'),
+  },
   // {
   //   title: 'Blog',
   //   path: '/blog',

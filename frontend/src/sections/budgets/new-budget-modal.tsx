@@ -1,7 +1,7 @@
 import type { Dayjs } from 'dayjs';
 
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -47,17 +47,47 @@ type NewBudgetModalProps = {
   open: boolean;
   onClose: () => void;
   onSubmit: (budgetData: NewBudgetSubmitProps) => void;
+  initial?: {
+    name?: string;
+    startDate?: Dayjs;
+    endDate?: Dayjs;
+    categories?: { [key: string]: number };
+  };
+  submitLabel?: string;
 };
 
-export function NewBudgetModal({ onClose, onSubmit, open = false }: NewBudgetModalProps) {
-  const [name, setName] = useState('');
-  const [startDate, setStartDate] = useState<Dayjs>(dayjs().startOf('month'));
-  const [endDate, setEndDate] = useState<Dayjs>(dayjs().endOf('month'));
-  const [categoryBudgets, setCategoryBudgets] = useState<CategoryBudget[]>([
-   { id: '1', categoryId: '', amount: '0' }
-  ]);
+export function NewBudgetModal({ onClose, onSubmit, open = false, initial, submitLabel = "Create Budget" }: NewBudgetModalProps) {
+  const [name, setName] = useState(initial?.name || '');
+  const [startDate, setStartDate] = useState<Dayjs>(initial?.startDate || dayjs().startOf('month'));
+  const [endDate, setEndDate] = useState<Dayjs>(initial?.endDate || dayjs().endOf('month'));
+  const [categoryBudgets, setCategoryBudgets] = useState<CategoryBudget[]>(
+    initial?.categories
+      ? Object.entries(initial.categories).map(([categoryId, amount]) => ({
+          id: categoryId,
+          categoryId,
+          amount: amount.toString(),
+        }))
+      : [{ id: '1', categoryId: '', amount: '0' }]
+  );
 
   const [error, setError] = useState<string | null>(null);
+
+  // Reset fields when modal opens/closes or initial changes
+  useEffect(() => {
+    setName(initial?.name || '');
+    setStartDate(initial?.startDate || dayjs().startOf('month'));
+    setEndDate(initial?.endDate || dayjs().endOf('month'));
+    setCategoryBudgets(
+      initial?.categories
+        ? Object.entries(initial.categories).map(([categoryId, amount]) => ({
+            id: categoryId,
+            categoryId,
+            amount: amount.toString(),
+          }))
+        : [{ id: '1', categoryId: '', amount: '0' }]
+    );
+    setError('');
+  }, [open, initial]);
 
  const handleClose = () => {
     setName('');
@@ -145,7 +175,7 @@ export function NewBudgetModal({ onClose, onSubmit, open = false }: NewBudgetMod
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>New Budget</DialogTitle>
+      <DialogTitle>{submitLabel === "Create Budget" ? "New Budget" : "Edit Budget"}</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
         {error && (
           <Typography color="error" variant="body2" style={{ textAlign: 'center' }}>
@@ -233,7 +263,7 @@ export function NewBudgetModal({ onClose, onSubmit, open = false }: NewBudgetMod
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
         <Button variant="contained" onClick={handleSubmit}>
-          Create Budget
+          {submitLabel}
         </Button>
       </DialogActions>
     </Dialog>

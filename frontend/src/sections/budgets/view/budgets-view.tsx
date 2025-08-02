@@ -29,8 +29,9 @@ export function BudgetsView() {
     try {
       const response = await handleRequest('/api/budgets', 'GET', setError, true);
       if (response?.success) {
-        setBudgets(response.data.map((budget: { id: string; name: string; startDate: string; endDate: string; categories: any }) => ({
+        setBudgets(response.data.map((budget: { id: string; primary: boolean, name: string; startDate: string; endDate: string; categories: any }) => ({
           id: budget.id,
+          primary: budget.primary,
           name: budget.name,
           startDate: new Date(budget.startDate),
           endDate: new Date(budget.endDate),
@@ -124,7 +125,7 @@ export function BudgetsView() {
       <Grid container spacing={3}>
         {budgets.map((budget) => (
           <Grid key={budget.id} size={{ xs: 12, sm: 6, lg: 4 }}>
-            <BudgetItem budget={budget} onDelete={handleDeleteBudget} onRefresh={fetchBudgets} />
+            <BudgetItem budget={budget} onDelete={handleDeleteBudget} onRefresh={fetchBudgets} setError={setError} />
           </Grid>
         ))}
       </Grid>

@@ -9,6 +9,7 @@ interface BudgetAttributes {
   name: string;
   startDate: Date;
   endDate: Date;
+  primary: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   deletedAt?: Date | null;
@@ -43,6 +44,11 @@ export const Budget = sequelize.define<BudgetInstance>(
     endDate: {
       type: DataTypes.DATE,
       allowNull: false,
+    },
+    primary: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
   },
   {

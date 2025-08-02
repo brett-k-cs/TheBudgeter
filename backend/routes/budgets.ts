@@ -13,7 +13,79 @@ interface BudgetRequestBody {
   startDate: string;
   endDate: string;
   categories: { [categoryId: string]: number };
+  primary?: boolean;
 }
+
+router.get('/primary', async (req, res) => {
+  try {
+    const now = new Date();
+    const budget = await Budget.findOne({
+      where: {
+        userId: req.user!.id,
+        primary: true,
+        startDate: { [Op.lte]: now },
+        endDate: { [Op.gte]: now },
+      },
+      include: [
+        {
+          model: BudgetCategory,
+          as: 'budgetCategories',
+          attributes: ['categoryId', 'budgetedAmount'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    if (!budget) {
+      res.json({ success: true, data: null });
+      return;
+    }
+
+    // Calculate spent amounts for each category
+    const categories: { [key: string]: { budgeted: number; spent: number } } = {};
+    const excludedTransactions = await BudgetTransactionExclusion.findAll({
+      where: { budgetId: budget.id },
+      attributes: ['transactionId'],
+    });
+    const excludedTransactionIds = excludedTransactions.map(exc => exc.transactionId);
+
+    for (const budgetCategory of budget.budgetCategories!) {
+      const spent = await Transaction.sum('amount', {
+        where: {
+          userId: req.user!.id,
+          category: budgetCategory.categoryId,
+          type: 'withdrawal',
+          date: {
+            [Op.between]: [budget.startDate, budget.endDate],
+          },
+          id: {
+            [Op.notIn]: excludedTransactionIds.length > 0 ? excludedTransactionIds : [0],
+          },
+        },
+      });
+
+      categories[budgetCategory.categoryId] = {
+        budgeted: parseFloat(parseFloat(budgetCategory.budgetedAmount.toString()).toFixed(2)),
+        spent: parseFloat((spent || 0).toFixed(2)),
+      };
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: budget.id.toString(),
+        name: budget.name,
+        startDate: budget.startDate,
+        endDate: budget.endDate,
+        primary: budget.primary,
+        categories,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching primary budget:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Get all budgets for user
 router.get('/', async (req, res) => {
@@ -68,6 +140,7 @@ router.get('/', async (req, res) => {
           name: budget.name,
           startDate: budget.startDate,
           endDate: budget.endDate,
+          primary: budget.primary,
           categories,
         };
       })
@@ -82,7 +155,7 @@ router.get('/', async (req, res) => {
 
 // Create new budget
 router.post('/', async (req: Request<{}, {}, BudgetRequestBody>, res: Response) => {
-  const { name, startDate, endDate, categories } = req.body;
+  const { name, startDate, endDate, categories, primary } = req.body;
 
   if (!name || !startDate || !endDate || !categories) {
     res.status(400).json({ error: 'Missing required fields' });
@@ -90,11 +163,38 @@ router.post('/', async (req: Request<{}, {}, BudgetRequestBody>, res: Response) 
   }
 
   try {
+    if (primary) {
+      // Check for overlapping primary budgets for this user
+      const overlappingPrimary = await Budget.findOne({
+        where: {
+          userId: req.user!.id,
+          primary: true,
+          [Op.or]: [
+            {
+              startDate: { [Op.between]: [startDate, endDate] },
+            },
+            {
+              endDate: { [Op.between]: [startDate, endDate] },
+            },
+            {
+              startDate: { [Op.lte]: startDate },
+              endDate: { [Op.gte]: endDate },
+            },
+          ],
+        },
+      });
+      if (overlappingPrimary) {
+        res.status(400).json({ error: 'Another primary budget overlaps this period.' });
+        return;
+      }
+    }
+
     const budget = await Budget.create({
       userId: req.user!.id,
       name,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
+      primary: !!primary,
     });
 
     // Create budget categories
@@ -243,6 +343,114 @@ router.post('/:id/transactions/:transactionId/toggle-exclusion', async (req: Req
     res.json({ success: true, data: { excluded } });
   } catch (error) {
     console.error('Error toggling transaction exclusion:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.patch('/:id', async (req: Request<{ id: string }, {}, Partial<BudgetRequestBody>>, res: Response) => {
+  const budgetId = parseInt(req.params.id, 10);
+  const { name, startDate, endDate, primary, categories } = req.body;
+
+  if (isNaN(budgetId)) {
+    res.status(400).json({ error: 'Invalid budget ID' });
+    return;
+  }
+
+  try {
+    const budget = await Budget.findByPk(budgetId, {
+      include: [
+        {
+          model: BudgetCategory,
+          as: 'budgetCategories',
+        },
+      ],
+    });
+
+    if (!budget) {
+      res.status(404).json({ error: 'Budget not found' });
+      return;
+    }
+
+    if (budget.userId !== req.user!.id) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    // Update basic properties if provided
+    if (name !== undefined) budget.name = name;
+    
+    let newStartDate = budget.startDate;
+    let newEndDate = budget.endDate;
+    
+    if (startDate) newStartDate = new Date(startDate);
+    if (endDate) newEndDate = new Date(endDate);
+
+    // Check for primary budget conflicts if needed
+    if ((primary === true || budget.primary) && (startDate || endDate)) {
+      const overlappingPrimary = await Budget.findOne({
+        where: {
+          userId: req.user!.id,
+          primary: true,
+          id: { [Op.ne]: budgetId },
+          [Op.or]: [
+            {
+              startDate: { [Op.between]: [newStartDate, newEndDate] },
+            },
+            {
+              endDate: { [Op.between]: [newStartDate, newEndDate] },
+            },
+            {
+              startDate: { [Op.lte]: newStartDate },
+              endDate: { [Op.gte]: newEndDate },
+            },
+          ],
+        },
+      });
+      console.log('Overlapping primary budget:', overlappingPrimary);
+      if (overlappingPrimary) {
+        res.status(400).json({ error: 'Another primary budget overlaps this period.' });
+        return;
+      }
+    }
+    
+    budget.startDate = newStartDate;
+    budget.endDate = newEndDate;
+    
+    if (typeof primary === 'boolean') {
+      budget.primary = primary;
+    }
+
+    await budget.save();
+
+    // Update budget categories if provided
+    if (categories) {
+      // Delete existing categories
+      await BudgetCategory.destroy({
+        where: { budgetId: budget.id }
+      });
+      
+      // Create new budget categories
+      const budgetCategories = Object.entries(categories).map(([categoryId, amount]) => ({
+        budgetId: budget.id,
+        categoryId,
+        budgetedAmount: amount,
+      }));
+
+      await BudgetCategory.bulkCreate(budgetCategories);
+    }
+
+    res.json({ 
+      success: true, 
+      data: { 
+        id: budget.id, 
+        name: budget.name,
+        startDate: budget.startDate,
+        endDate: budget.endDate,
+        primary: budget.primary 
+      } 
+    });
+  } catch (error) {
+    console.error('Error updating budget:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

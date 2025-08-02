@@ -17,6 +17,7 @@ export const TransactionsPage = lazy(() => import('src/pages/transactions'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const SignUpPage = lazy(() => import('src/pages/sign-up'));
 export const BudgetsPage = lazy(() => import('src/pages/budgets'));
+export const AccountsPage = lazy(() => import('src/pages/accounts'));
 export const Page404 = lazy(() => import('src/pages/page-not-found'));
 
 const renderFallback = () => (
@@ -52,6 +53,7 @@ export const routesSection: RouteObject[] = [
       { index: true, element: <DashboardPage /> },
       { path: 'transactions', element: <TransactionsPage /> },
       { path: 'budgets', element: <BudgetsPage /> },
+      { path: 'accounts', element: <AccountsPage /> },
     ],
   },
   {
@@ -62,7 +64,7 @@ export const routesSection: RouteObject[] = [
       </AuthLayout>
     ),
   },
-    {
+  {
     path: 'sign-up',
     element: (
       <AuthLayout>

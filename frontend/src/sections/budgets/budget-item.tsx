@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useState } from 'react';
 
 import Box from '@mui/material/Box';
@@ -13,6 +14,7 @@ import { categories } from 'src/_mock/_categories';
 
 import { Iconify } from 'src/components/iconify';
 
+import { NewBudgetModal } from './new-budget-modal';
 import { BudgetTransactionsModal } from './budget-transactions-modal';
 
 // ----------------------------------------------------------------------
@@ -22,6 +24,7 @@ export interface BudgetProps {
   name: string;
   startDate: Date;
   endDate: Date;
+  primary?: boolean;
   categories: {
     [categoryId: string]: {
       budgeted: number;
@@ -34,11 +37,13 @@ interface BudgetItemProps {
   budget: BudgetProps;
   onDelete?: (budgetId: string) => void;
   onRefresh?: () => void;
+  setError?: (msg: string) => void;
 }
 
-export function BudgetItem({ budget, onDelete, onRefresh }: BudgetItemProps) {
+export function BudgetItem({ budget, onDelete, onRefresh, setError }: BudgetItemProps) {
   const [transactionsModalOpen, setTransactionsModalOpen] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [editModalOpen, setEditModalOpen] = useState(false);
   // Calculate total budgeted and spent amounts
   const budgetedAmount =
     Object.values(budget.categories).reduce((total, category) => total + category.budgeted, 0) || 0;
@@ -83,23 +88,103 @@ export function BudgetItem({ budget, onDelete, onRefresh }: BudgetItemProps) {
     }
   };
 
+  const handleSetPrimary = async () => {
+    if (setError) setError('');
+    
+    // Call backend to set this budget as primary
+    try {
+      const res = await fetch(`/api/budgets/${budget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          ...budget, 
+          categories: Object.fromEntries(
+            Object.entries(budget.categories).map(([catId, cat]) => [catId, cat.budgeted])
+          ), 
+          primary: !budget.primary 
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok && data?.error) {
+        if (setError) setError(data.error);
+      } else {
+        if (onRefresh) onRefresh();
+      }
+    } catch (err) {
+      if (setError) setError('Failed to update budget.');
+    }
+  };
+
+  const handleEdit = () => {
+    setEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (editData: any) => {
+    if (setError) setError('');
+    try {
+      const res = await fetch(`/api/budgets/${budget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editData.name,
+          startDate: editData.startDate.toISOString(),
+          endDate: editData.endDate.toISOString(),
+          categories: editData.categories,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok && data?.error) {
+        if (setError) setError(data.error);
+      } else {
+        setEditModalOpen(false);
+        if (onRefresh) onRefresh();
+      }
+    } catch (err) {
+      if (setError) setError('Failed to update budget.');
+    }
+  };
+
   return (
     <Card sx={{ p: 3, height: '100%', position: 'relative' }}>
-      <IconButton
-        sx={{
-          position: 'absolute',
-          top: 8,
-          right: 8,
-          color: 'text.secondary',
-          '&:hover': {
-            color: 'error.main',
-            backgroundColor: 'error.lighter',
-          },
-        }}
-        onClick={handleDelete}
-      >
-        <Iconify icon="solar:trash-bin-trash-bold" width={20} height={20} />
-      </IconButton>
+      <Box sx={{ 
+        position: 'absolute', 
+        top: 8, 
+        right: 8, 
+        display: 'flex', 
+        gap: 1 
+      }}>
+        <IconButton
+          color={budget.primary ? 'error' : 'default'}
+          onClick={handleSetPrimary}
+          title={budget.primary ? 'Unset Primary' : 'Set as Primary'}
+        >
+          <Iconify icon={budget.primary ? 'solar:star-bold' : 'solar:star-outline'} width={20} height={20} />
+        </IconButton>
+        <IconButton
+          sx={{
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'primary.main',
+              backgroundColor: 'primary.lighter',
+            },
+          }}
+          onClick={handleEdit}
+        >
+          <Iconify icon="solar:pen-bold" width={20} height={20} />
+        </IconButton>
+        <IconButton
+          sx={{
+            color: 'text.secondary',
+            '&:hover': {
+              color: 'error.main',
+              backgroundColor: 'error.lighter',
+            },
+          }}
+          onClick={handleDelete}
+        >
+          <Iconify icon="solar:trash-bin-trash-bold" width={20} height={20} />
+        </IconButton>
+      </Box>
 
       <Stack spacing={2} sx={{ height: '100%' }}>
         <Box>
@@ -204,6 +289,20 @@ export function BudgetItem({ budget, onDelete, onRefresh }: BudgetItemProps) {
         budgetId={budget.id}
         categoryId={selectedCategoryId}
         onTransactionToggle={handleTransactionToggle}
+      />
+      <NewBudgetModal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        onSubmit={handleEditSubmit}
+        initial={{
+          name: budget.name,
+          startDate: dayjs(budget.startDate),
+          endDate: dayjs(budget.endDate),
+          categories: Object.fromEntries(
+            Object.entries(budget.categories).map(([catId, cat]) => [catId, cat.budgeted])
+          ),
+        }}
+        submitLabel="Save Changes"
       />
     </Card>
   );

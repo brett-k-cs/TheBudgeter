@@ -18,7 +18,7 @@ export function OverviewAnalyticsView() {
   const [monthlyIncome, setMonthlyIncome] = useState<Record<string, any>>({});
   const [monthlySpending, setMonthlySpending] = useState<Record<string, any>>({});
   const [checkingBalance, setCheckingBalance] = useState<Record<string, any>>({});
-  const [primaryBudget, setPrimaryBudget] = useState<Record<string, any>>({});
+  const [primaryBudget, setPrimaryBudget] = useState<Record<string, any> | null>(null);
   const [spendingByCategory, setSpendingByCategory] = useState<Record<string, any>>({});
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
@@ -71,6 +71,12 @@ export function OverviewAnalyticsView() {
 
       // Fetch spending by category with current date range
       await fetchSpendingByCategory(dateRange.startDate, dateRange.endDate);
+
+      // Fetch primary budget
+      const responsePrimary = await handleRequest('/api/budgets/primary', 'GET', undefined, true);
+      if (responsePrimary?.success) {
+        setPrimaryBudget(responsePrimary.data || null);
+      }
     };
 
     fetchSummaries();
@@ -149,13 +155,43 @@ export function OverviewAnalyticsView() {
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
             title="Primary Budget %"
-            percent={3.6}
-            total={83}
+            percent={
+              primaryBudget
+                ? (() => {
+                    const totalBudgeted = Object.values(primaryBudget.categories || {}).reduce(
+                      (sum: number, cat: any) => sum + cat.budgeted,
+                      0
+                    );
+                    const totalSpent = Object.values(primaryBudget.categories || {}).reduce(
+                      (sum: number, cat: any) => sum + cat.spent,
+                      0
+                    );
+                    return totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
+                  })()
+                : 0
+            }
+            total={
+              primaryBudget
+                ? (() => {
+                    const totalBudgeted = Object.values(primaryBudget.categories || {}).reduce(
+                      (sum: number, cat: any) => sum + cat.budgeted,
+                      0
+                    );
+                    const totalSpent = Object.values(primaryBudget.categories || {}).reduce(
+                      (sum: number, cat: any) => sum + cat.spent,
+                      0
+                    );
+                    return totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
+                  })()
+                : 0
+            }
             color="error"
             icon={<img alt="Messages" src="/assets/icons/glass/ic-glass-message.svg" />}
             chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-              series: [56, 30, 23, 54, 47, 40, 62, 73],
+              categories: Object.keys(primaryBudget?.categories || {}).map(
+                (id) => categories.find((cat) => cat.id === id)?.label || id
+              ),
+              series: Object.values(primaryBudget?.categories || {}).map((cat: any) => cat.spent),
             }}
           />
         </Grid>
@@ -182,12 +218,27 @@ export function OverviewAnalyticsView() {
           <Grid size={{ xs: 12, md: 6, lg: 6 }}>
             <AnalyticsBudgetCategories
               title="Monthly Budget Progress"
-              subheader="$150 total left"
+              subheader={
+                primaryBudget
+                  ? `$${Object.values(primaryBudget.categories || {}).reduce(
+                      (sum: number, cat: any) => sum + (cat.budgeted - cat.spent),
+                      0
+                    )} total left`
+                  : ''
+              }
               chart={{
-                categories: ['Gas', 'Restaurants', 'Supermarkets', 'Entertainment', 'Misc.'],
+                categories: Object.keys(primaryBudget?.categories || {}).map(
+                  (id) => categories.find((cat) => cat.id === id)?.label || id
+                ),
                 series: [
-                  { name: 'Current', data: [43, 33, 22, 37, 67] },
-                  { name: 'Allocated', data: [51, 70, 47, 67, 40] },
+                  {
+                    name: 'Current',
+                    data: Object.values(primaryBudget?.categories || {}).map((cat: any) => cat.spent),
+                  },
+                  {
+                    name: 'Allocated',
+                    data: Object.values(primaryBudget?.categories || {}).map((cat: any) => cat.budgeted),
+                  },
                 ],
               }}
               style={{ height: '100%' }}
