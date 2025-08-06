@@ -64,6 +64,14 @@ export function AccountsView() {
   const { open, ready } = usePlaidLink({
     token: linkToken,
     onSuccess,
+    onExit: (errorP, metadata) => {
+      if (errorP) {
+        console.error('Plaid Link exited with error:', errorP);
+        setError('Failed to link account');
+      } else {
+        console.log('Plaid Link exited successfully:', metadata);
+      }
+    },
   });
 
   const fetchAccounts = useCallback(async () => {

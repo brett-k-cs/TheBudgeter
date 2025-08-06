@@ -1,6 +1,6 @@
 import type { IconButtonProps } from '@mui/material/IconButton';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -35,6 +35,7 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
   const pathname = usePathname();
 
   const [openPopover, setOpenPopover] = useState<HTMLButtonElement | null>(null);
+  const [accountDetails, setAccountDetails] = useState(_myAccount);
 
   const handleOpenPopover = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setOpenPopover(event.currentTarget);
@@ -51,6 +52,19 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
     },
     [handleClosePopover, router]
   );
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      const res = await handleRequest('/api/auth/me', 'GET', undefined, true);
+      if (!res) {
+        console.error('Failed to fetch user info');
+        return;
+      }
+      setAccountDetails((prev) => ({ ...prev, ...res.data }));
+    };
+
+    fetchUserInfo();
+}, []);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -80,8 +94,8 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
         }}
         {...other}
       >
-        <Avatar src={_myAccount.photoURL} alt={_myAccount.displayName} sx={{ width: 1, height: 1 }}>
-          {_myAccount.displayName.charAt(0).toUpperCase()}
+        <Avatar src={accountDetails.photoURL} alt={accountDetails.name} sx={{ width: 1, height: 1 }}>
+          {accountDetails.name.charAt(0).toUpperCase()}
         </Avatar>
       </IconButton>
 
@@ -99,11 +113,11 @@ export function AccountPopover({ data = [], sx, ...other }: AccountPopoverProps)
       >
         <Box sx={{ p: 2, pb: 1.5 }}>
           <Typography variant="subtitle2" noWrap>
-            {_myAccount?.displayName}
+            {accountDetails.name}
           </Typography>
 
           <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
-            {_myAccount?.email}
+            {accountDetails.email}
           </Typography>
         </Box>
 

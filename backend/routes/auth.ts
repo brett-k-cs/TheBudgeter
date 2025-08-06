@@ -5,6 +5,8 @@ import { hashPassword, verifyPassword } from '../auth/login.js';
 import { signRefreshToken } from '../auth/jwt.js';
 import { User } from '../models/user.js';
 
+import { authenticateTokenMiddelware } from '../middleware/authMiddleware.js';
+
 const router = Router();
 
 type RegisterRequestBody = {
@@ -56,6 +58,7 @@ router.post('/register', async (req: Request<{}, {}, RegisterRequestBody>, res: 
     id: newUser.id,
     name: newUser.name,
     email: newUser.email,
+    authKey: newUser.authKey,
   }
 
   const refreshToken = signRefreshToken(payload);
@@ -100,6 +103,7 @@ router.post('/login', async (req: Request<{}, {}, LoginRequestBody>, res: Respon
     id: user.id,
     name: user.name,
     email: user.email,
+    authKey: user.authKey,
   };
   const refreshToken = signRefreshToken(payload);
   res.cookie('refreshToken', refreshToken, {
@@ -111,7 +115,7 @@ router.post('/login', async (req: Request<{}, {}, LoginRequestBody>, res: Respon
   res.status(200).json({ success: true, message: 'Login successful' });
 });
 
-router.post('/logout', (req: Request, res: Response) => {
+router.post('/logout', authenticateTokenMiddelware, (req: Request, res: Response) => {
   // Clear the refresh token cookie
   res.clearCookie('refreshToken', {
     httpOnly: true,
@@ -120,6 +124,28 @@ router.post('/logout', (req: Request, res: Response) => {
   });
   
   res.status(200).json({ success: true, message: 'Logged out successfully' });
+});
+
+router.post('/logoutall', authenticateTokenMiddelware, async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+
+  // Invalidate all refresh tokens for the user
+  await User.increment({ authKey: 1 }, { where: { id: userId } });
+
+  res.status(200).json({ success: true, message: 'Logged out from all devices.' });
+});
+
+router.get('/me', authenticateTokenMiddelware, async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const user = await User.findByPk(userId, {
+    attributes: ['email', 'name'],
+  });
+  if (!user) {
+    res.status(404).json({ error: 'User not found' });
+    return;
+  }
+
+  res.status(200).json({ success: true, data: user });
 });
 
 export const authRouter = router;

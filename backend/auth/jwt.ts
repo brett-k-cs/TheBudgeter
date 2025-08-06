@@ -2,6 +2,7 @@ export interface JwtPayload {
   id: number;
   name: string;
   email: string;
+  authKey: number;
   exp?: number; // Optional expiration field
   iat?: number; // Optional issued at field
 }

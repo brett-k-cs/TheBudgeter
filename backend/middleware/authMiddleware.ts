@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 
+import { User } from '../models/user.js';
 import { JwtPayload } from "../auth/jwt.js";
 
 declare global {
@@ -54,11 +55,21 @@ export const authenticateTokenMiddelware = (
       delete user.exp;
       delete user.iat;
 
+      User.findByPk(user.id).then((foundUser) => {
+        if (!foundUser) {
+          res.status(403).json({ message: 'User not found' });
+          return;
+        }
+        if (foundUser.authKey !== user.authKey) {
+          throw new Error("User's authKey does not match");
+        }
+      });
+
       // Create new access token and attach to response
       const newAccessToken = signAccessToken(user);
 
       // Optionally: send new token in header or response body
-      res.setHeader('x-access-token', newAccessToken); // OR send in JSON
+      res.setHeader('x-access-token', newAccessToken);
       req.user = user;
       return next();
     } catch (refreshErr) {

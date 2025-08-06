@@ -6,7 +6,7 @@ const router = Router();
 
 interface AccountRequestBody {
     name: string;
-    type: "checking" | "savings" | "credit_card" | "investment" | "other";
+    type: "checking" | "savings" | "credit card" | "investment" | "other";
     balance?: number;
     description?: string;
 }
@@ -74,7 +74,7 @@ router.post(
             ![
                 "checking",
                 "savings",
-                "credit_card",
+                "credit card",
                 "investment",
                 "other",
             ].includes(type)
@@ -131,7 +131,7 @@ router.put(
             ![
                 "checking",
                 "savings",
-                "credit_card",
+                "credit card",
                 "investment",
                 "other",
             ].includes(type)

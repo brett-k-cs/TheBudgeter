@@ -19,7 +19,7 @@ import { EditAccountModal } from './edit-account-modal';
 export interface AccountProps {
   id: string;
   name: string;
-  type: 'checking' | 'savings' | 'credit_card' | 'investment' | 'other';
+  type: 'checking' | 'savings' | 'credit card' | 'investment' | 'other';
   balance: number;
   description?: string;
   isActive: boolean;
@@ -39,7 +39,7 @@ const getAccountTypeLabel = (type: AccountProps['type']) => {
       return 'Checking';
     case 'savings':
       return 'Savings';
-    case 'credit_card':
+    case 'credit card':
       return 'Credit Card';
     case 'investment':
       return 'Investment';
@@ -56,7 +56,7 @@ const getAccountTypeColor = (type: AccountProps['type']) => {
       return 'primary';
     case 'savings':
       return 'success';
-    case 'credit_card':
+    case 'credit card':
       return 'warning';
     case 'investment':
       return 'info';
@@ -73,7 +73,7 @@ const getAccountIcon = (type: AccountProps['type']) => {
       return 'solar:wallet-bold';
     case 'savings':
       return 'solar:home-angle-bold-duotone';
-    case 'credit_card':
+    case 'credit card':
       return 'solar:card-2-bold';
     case 'investment':
       return 'solar:graph-up-bold';

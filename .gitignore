@@ -41,3 +41,6 @@ knip.jsonc
 
 # database files
 *.sqlite
+
+# plaid
+*/plaid-data/*

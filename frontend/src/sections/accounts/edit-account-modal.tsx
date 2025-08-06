@@ -132,7 +132,7 @@ export function EditAccountModal({ open, onClose, onSubmit, account }: EditAccou
                 <Select value={formData.type} onChange={handleChange('type')} label="Account Type">
                   <MenuItem value="checking">Checking</MenuItem>
                   <MenuItem value="savings">Savings</MenuItem>
-                  <MenuItem value="credit_card">Credit Card</MenuItem>
+                  <MenuItem value="credit card">Credit Card</MenuItem>
                   <MenuItem value="investment">Investment</MenuItem>
                   <MenuItem value="other">Other</MenuItem>
                 </Select>

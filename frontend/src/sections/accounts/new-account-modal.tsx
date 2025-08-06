@@ -19,7 +19,7 @@ import { Iconify } from 'src/components/iconify';
 
 export interface NewAccountSubmitProps {
   name: string;
-  type: 'checking' | 'savings' | 'credit_card' | 'investment' | 'other';
+  type: 'checking' | 'savings' | 'credit card' | 'investment' | 'other';
   balance: number;
   description?: string;
 }
@@ -131,7 +131,7 @@ export function NewAccountModal({ open, onClose, onSubmit }: NewAccountModalProp
                 <Select value={formData.type} onChange={handleChange('type')} label="Account Type">
                   <MenuItem value="checking">Checking</MenuItem>
                   <MenuItem value="savings">Savings</MenuItem>
-                  <MenuItem value="credit_card">Credit Card</MenuItem>
+                  <MenuItem value="credit card">Credit Card</MenuItem>
                   <MenuItem value="investment">Investment</MenuItem>
                   <MenuItem value="other">Other</MenuItem>
                 </Select>

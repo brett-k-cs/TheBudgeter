@@ -5,13 +5,13 @@ interface AccountAttributes {
     id: number;
     userId: number;
     name: string;
-    type: "checking" | "savings" | "credit_card" | "investment" | "other";
+    type: "checking" | "savings" | "credit card" | "investment" | "other";
     balance: number;
     isActive: boolean;
     description?: string;
 
-    plaidAccountId?: string;      // Optional: link to Plaid account_id
-    plaidItemId?: number;         // Optional FK to PlaidItem.id
+    plaidAccountId?: string; // Optional: link to Plaid account_id
+    plaidItemId?: number; // Optional FK to PlaidItem.id
 
     // Timestamps
     createdAt?: Date;
@@ -60,7 +60,7 @@ export const Account = sequelize.define<AccountInstance>(
             type: DataTypes.ENUM(
                 "checking",
                 "savings",
-                "credit_card",
+                "credit card",
                 "investment",
                 "other"
             ),

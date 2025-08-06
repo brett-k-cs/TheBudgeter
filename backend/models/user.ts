@@ -6,6 +6,7 @@ interface UserAttributes {
     email: string;
     name: string;
     passwordHash: string;
+    authKey: number;
 
     // Timestamps
     createdAt?: Date;
@@ -15,7 +16,7 @@ interface UserAttributes {
 
 type UserCreationAttributes = Optional<
     UserAttributes,
-    "id" |  "createdAt" | "updatedAt" | "deletedAt"
+    "id" |  "authKey" | "createdAt" | "updatedAt" | "deletedAt"
 >;
 
 interface UserInstance
@@ -46,6 +47,11 @@ export const User = sequelize.define<UserInstance>(
         passwordHash: {
             type: DataTypes.STRING,
             allowNull: false,
+        },
+        authKey: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
         },
     },
     {
