@@ -10,6 +10,9 @@ interface AccountAttributes {
     isActive: boolean;
     description?: string;
 
+    plaidAccountId?: string;      // Optional: link to Plaid account_id
+    plaidItemId?: number;         // Optional FK to PlaidItem.id
+
     // Timestamps
     createdAt?: Date;
     updatedAt?: Date;
@@ -22,6 +25,8 @@ type AccountCreationAttributes = Optional<
     | "balance"
     | "isActive"
     | "description"
+    | "plaidAccountId"
+    | "plaidItemId"
     | "createdAt"
     | "updatedAt"
     | "deletedAt"
@@ -39,12 +44,12 @@ export const Account = sequelize.define<AccountInstance>(
     "Account",
     {
         id: {
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true,
         },
         userId: {
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.INTEGER,
             allowNull: false,
         },
         name: {

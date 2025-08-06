@@ -24,6 +24,7 @@ export interface AccountProps {
   description?: string;
   isActive: boolean;
   createdAt: Date;
+  isPlaid: boolean;
 }
 
 interface AccountItemProps {
@@ -104,6 +105,7 @@ export function AccountItem({ account, onDelete, onUpdate }: AccountItemProps) {
       <Card
         sx={{
           height: '100%',
+          position: 'relative',
           transition: 'all 0.3s ease-in-out',
           '&:hover': {
             transform: 'translateY(-4px)',
@@ -111,6 +113,45 @@ export function AccountItem({ account, onDelete, onUpdate }: AccountItemProps) {
           },
         }}
       >
+        {/* Plaid indicator diagonal strip */}
+        {account.isPlaid && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: 0,
+              height: 0,
+              borderLeft: '64px solid transparent',
+              borderBottom: '64px solid',
+              borderBottomColor: 'primary.main',
+              zIndex: 1,
+            }}
+          />
+        )}
+
+        {/* Plaid icon on the strip */}
+        {account.isPlaid && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 4,
+              right: 4,
+              zIndex: 2,
+            }}
+          >
+            <Iconify
+              icon="brands:plaid"
+              sx={{
+                width: 24,
+                height: 24,
+                color: 'white',
+                transform: 'rotate(45deg)',
+              }}
+            />
+          </Box>
+        )}
+
         <CardContent sx={{ p: 3 }}>
           <Stack spacing={2}>
             {/* Header */}

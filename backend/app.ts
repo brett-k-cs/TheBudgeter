@@ -4,11 +4,16 @@ import cors from "cors";
 
 import { authenticateTokenMiddelware } from "./middleware/authMiddleware.js";
 
+import { plaidRouter } from "./routes/plaid.js";
 import { authRouter } from "./routes/auth.js";
 import { summariesRouter } from "./routes/summaries.js";
 import { transactionsRouter } from "./routes/transactions.js";
 import { budgetsRouter } from "./routes/budgets.js";
 import { accountsRouter } from "./routes/accounts.js";
+
+// Init plaid client
+import { initializePlaidClient } from "./plaid-manager.js";
+initializePlaidClient();
 
 const app = express();
 
@@ -23,5 +28,6 @@ app.use("/api/dashboard", authenticateTokenMiddelware, summariesRouter);
 app.use("/api/transactions", authenticateTokenMiddelware, transactionsRouter);
 app.use("/api/budgets", authenticateTokenMiddelware, budgetsRouter);
 app.use("/api/accounts", authenticateTokenMiddelware, accountsRouter);
+app.use("/api/plaid", authenticateTokenMiddelware, plaidRouter);
 
 export default app;

@@ -1,5 +1,5 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../db.js';
+import { DataTypes, Model, Optional } from "sequelize";
+import { sequelize } from "../db.js";
 
 export interface BudgetCategoryAttributes {
   id: number;
@@ -10,20 +10,25 @@ export interface BudgetCategoryAttributes {
   updatedAt?: Date;
 }
 
-type BudgetCategoryCreationAttributes = Optional<BudgetCategoryAttributes, 'id' | 'createdAt' | 'updatedAt'>;
+type BudgetCategoryCreationAttributes = Optional<
+  BudgetCategoryAttributes,
+  "id" | "createdAt" | "updatedAt"
+>;
 
-interface BudgetCategoryInstance extends Model<BudgetCategoryAttributes, BudgetCategoryCreationAttributes>, BudgetCategoryAttributes {}
+interface BudgetCategoryInstance
+  extends Model<BudgetCategoryAttributes, BudgetCategoryCreationAttributes>,
+    BudgetCategoryAttributes {}
 
 export const BudgetCategory = sequelize.define<BudgetCategoryInstance>(
-  'BudgetCategory',
+  "BudgetCategory",
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
     budgetId: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     categoryId: {
@@ -36,8 +41,8 @@ export const BudgetCategory = sequelize.define<BudgetCategoryInstance>(
     },
   },
   {
-    modelName: 'BudgetCategory',
-    tableName: 'budget_categories',
+    modelName: "BudgetCategory",
+    tableName: "budget_categories",
     timestamps: true,
   }
 );

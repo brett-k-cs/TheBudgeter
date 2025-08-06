@@ -1,7 +1,7 @@
-import type { BudgetCategoryAttributes } from './budgetCategory.js';
+import type { BudgetCategoryAttributes } from "./budgetCategory.js";
 
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../db.js';
+import { DataTypes, Model, Optional } from "sequelize";
+import { sequelize } from "../db.js";
 
 interface BudgetAttributes {
   id: number;
@@ -17,20 +17,25 @@ interface BudgetAttributes {
   budgetCategories?: BudgetCategoryAttributes[];
 }
 
-type BudgetCreationAttributes = Optional<BudgetAttributes, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
+type BudgetCreationAttributes = Optional<
+  BudgetAttributes,
+  "id" | "createdAt" | "updatedAt" | "deletedAt"
+>;
 
-interface BudgetInstance extends Model<BudgetAttributes, BudgetCreationAttributes>, BudgetAttributes {}
+interface BudgetInstance
+  extends Model<BudgetAttributes, BudgetCreationAttributes>,
+    BudgetAttributes {}
 
 export const Budget = sequelize.define<BudgetInstance>(
-  'Budget',
+  "Budget",
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
     userId: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     name: {
@@ -52,23 +57,31 @@ export const Budget = sequelize.define<BudgetInstance>(
     },
   },
   {
-    modelName: 'Budget',
-    tableName: 'budgets',
+    modelName: "Budget",
+    tableName: "budgets",
     paranoid: true,
     timestamps: true,
   }
 );
 
 // Associations
-import { User } from './user.js';
-import { BudgetCategory } from './budgetCategory.js';
-import { BudgetTransactionExclusion } from './budgetTransactionExclusion.js';
+import { User } from "./user.js";
+import { BudgetCategory } from "./budgetCategory.js";
+import { BudgetTransactionExclusion } from "./budgetTransactionExclusion.js";
 
-Budget.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
-User.hasMany(Budget, { foreignKey: 'userId' });
+Budget.belongsTo(User, { foreignKey: "userId", onDelete: "CASCADE" });
+User.hasMany(Budget, { foreignKey: "userId" });
 
-Budget.hasMany(BudgetCategory, { foreignKey: 'budgetId', as: 'budgetCategories', onDelete: 'CASCADE' });
-BudgetCategory.belongsTo(Budget, { foreignKey: 'budgetId' });
+Budget.hasMany(BudgetCategory, {
+    foreignKey: "budgetId",
+    as: "budgetCategories",
+    onDelete: "CASCADE",
+});
+BudgetCategory.belongsTo(Budget, { foreignKey: "budgetId" });
 
-Budget.hasMany(BudgetTransactionExclusion, { foreignKey: 'budgetId', as: 'exclusions', onDelete: 'CASCADE' });
-BudgetTransactionExclusion.belongsTo(Budget, { foreignKey: 'budgetId' });
+Budget.hasMany(BudgetTransactionExclusion, {
+    foreignKey: "budgetId",
+    as: "exclusions",
+    onDelete: "CASCADE",
+});
+BudgetTransactionExclusion.belongsTo(Budget, { foreignKey: "budgetId" });

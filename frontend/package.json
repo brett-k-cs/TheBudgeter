@@ -45,6 +45,7 @@
     "react-apexcharts": "^1.7.0",
     "react-dom": "^19.1.0",
     "react-papaparse": "^4.4.0",
+    "react-plaid-link": "^4.0.1",
     "react-router-dom": "^7.4.1",
     "simplebar-react": "^3.3.0"
   },

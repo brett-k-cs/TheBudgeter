@@ -1,5 +1,5 @@
-import { DataTypes, Model, Optional } from 'sequelize';
-import { sequelize } from '../db.js';
+import { DataTypes, Model, Optional } from "sequelize";
+import { sequelize } from "../db.js";
 
 export interface BudgetTransactionExclusionAttributes {
   id: number;
@@ -9,37 +9,45 @@ export interface BudgetTransactionExclusionAttributes {
   updatedAt?: Date;
 }
 
-type BudgetTransactionExclusionCreationAttributes = Optional<BudgetTransactionExclusionAttributes, 'id' | 'createdAt' | 'updatedAt'>;
+type BudgetTransactionExclusionCreationAttributes = Optional<
+  BudgetTransactionExclusionAttributes,
+  "id" | "createdAt" | "updatedAt"
+>;
 
-interface BudgetTransactionExclusionInstance extends Model<BudgetTransactionExclusionAttributes, BudgetTransactionExclusionCreationAttributes>, BudgetTransactionExclusionAttributes {}
+interface BudgetTransactionExclusionInstance
+  extends Model<
+      BudgetTransactionExclusionAttributes,
+      BudgetTransactionExclusionCreationAttributes
+    >,
+    BudgetTransactionExclusionAttributes {}
 
 export const BudgetTransactionExclusion = sequelize.define<BudgetTransactionExclusionInstance>(
-  'BudgetTransactionExclusion',
+  "BudgetTransactionExclusion",
   {
     id: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       autoIncrement: true,
       primaryKey: true,
     },
     budgetId: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     transactionId: {
-      type: DataTypes.INTEGER.UNSIGNED,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
-  },
-  {
-    modelName: 'BudgetTransactionExclusion',
-    tableName: 'budget_transaction_exclusions',
+},
+{
+    modelName: "BudgetTransactionExclusion",
+    tableName: "budget_transaction_exclusions",
     timestamps: true,
     indexes: [
       {
         unique: true,
-        fields: ['budgetId', 'transactionId']
-      }
-    ]
+        fields: ["budgetId", "transactionId"],
+      },
+    ],
   }
 );
 

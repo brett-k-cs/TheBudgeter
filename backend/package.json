@@ -19,6 +19,7 @@
     "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.2",
     "pdfkit": "^0.17.1",
+    "plaid": "^37.0.0",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",
     "xmlbuilder2": "^3.1.1"

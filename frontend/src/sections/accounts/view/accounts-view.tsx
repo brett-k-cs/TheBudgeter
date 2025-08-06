@@ -1,3 +1,6 @@
+import type { PlaidLinkOnSuccess } from 'react-plaid-link';
+
+import { usePlaidLink } from 'react-plaid-link';
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
@@ -24,6 +27,44 @@ export function AccountsView() {
   const [accounts, setAccounts] = useState<AccountProps[]>([]);
   const [openNew, setOpenNew] = useState(false);
   const [error, setError] = useState<string>('');
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+
+  // Create link token function
+  const createLinkToken = useCallback(async () => {
+    try {
+      const linkTokenRes = await handleRequest('/api/plaid/create_link_token', 'POST', setError, true);
+      if (linkTokenRes?.success) {
+        setLinkToken(linkTokenRes.data.link_token);
+      }
+    } catch (err) {
+      console.error('Error creating link token:', err);
+      setError('Failed to create link token');
+    }
+  }, []);
+
+  // Initialize link token on mount
+  useEffect(() => {
+    createLinkToken();
+  }, [createLinkToken]);
+
+  const onSuccess = useCallback<PlaidLinkOnSuccess>(async (publicToken, metadata) => {
+    console.log(publicToken, metadata);
+
+    const response = await handleRequest('/api/plaid/exchange_public_token', 'POST', setError, true, {
+      public_token: publicToken,
+    });
+
+    if (response?.success) {
+      console.log('Public token exchanged successfully:', response.data);
+      await fetchAccounts(); // Refresh accounts after linking
+    }
+  }, []);
+
+  // Plaid Link configuration - only initialize when token is available
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess,
+  });
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -40,9 +81,28 @@ export function AccountsView() {
                 description: account.description,
                 isActive: account.isActive,
                 createdAt: new Date(account.createdAt),
+                isPlaid: false,
               }) as AccountProps
           )
         );
+      }
+
+      const plaidResponse = await handleRequest('/api/plaid/balance', 'GET', setError, true);
+      if (plaidResponse?.success) {
+        console.log('Plaid balance fetched successfully:', plaidResponse.data);
+
+        const plaidAccounts = plaidResponse.data.map((account: any) => ({
+          id: account.account_id,
+          name: account.name,
+          type: account.subtype || 'other',
+          balance: account.balances.current || 0,
+          description: account.official_name || '',
+          isActive: true,
+          createdAt: new Date(), // Plaid accounts don't have a createdAt, so use current date
+          isPlaid: true,
+        })) as AccountProps[];
+
+        setAccounts((prev) => [...prev.filter(a => !plaidAccounts.map(b => b.id).includes(a.id)), ...plaidAccounts]);
       }
     } catch (err) {
       console.error('Error fetching accounts:', err);
@@ -142,6 +202,16 @@ export function AccountsView() {
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
           Bank Accounts
         </Typography>
+        <Button
+          variant="contained"
+          color="inherit"
+          startIcon={<Iconify icon="brands:plaid" />}
+          onClick={() => open()}
+          disabled={!ready || !linkToken} // Disable if not ready or no token
+          sx={{ mr: 1 }}
+        >
+          Link Accounts
+        </Button>
         <Button
           variant="contained"
           color="inherit"
