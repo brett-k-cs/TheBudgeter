@@ -11,10 +11,6 @@ import { transactionsRouter } from "./routes/transactions.js";
 import { budgetsRouter } from "./routes/budgets.js";
 import { accountsRouter } from "./routes/accounts.js";
 
-// Init plaid client
-import { initializePlaidClient } from "./plaid-manager.js";
-initializePlaidClient();
-
 const app = express();
 
 // Middleware

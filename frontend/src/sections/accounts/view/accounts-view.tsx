@@ -24,7 +24,7 @@ import type { NewAccountSubmitProps } from '../new-account-modal';
 // ----------------------------------------------------------------------
 
 export function AccountsView() {
-  const [accounts, setAccounts] = useState<AccountProps[]>([]);
+  const [accounts, setAccounts] = useState<AccountProps[] | null>(null);
   const [openNew, setOpenNew] = useState(false);
   const [error, setError] = useState<string>('');
   const [linkToken, setLinkToken] = useState<string | null>(null);
@@ -47,52 +47,29 @@ export function AccountsView() {
     createLinkToken();
   }, [createLinkToken]);
 
-  const onSuccess = useCallback<PlaidLinkOnSuccess>(async (publicToken, metadata) => {
-    console.log(publicToken, metadata);
-
-    const response = await handleRequest('/api/plaid/exchange_public_token', 'POST', setError, true, {
-      public_token: publicToken,
-    });
-
-    if (response?.success) {
-      console.log('Public token exchanged successfully:', response.data);
-      await fetchAccounts(); // Refresh accounts after linking
-    }
-  }, []);
-
-  // Plaid Link configuration - only initialize when token is available
-  const { open, ready } = usePlaidLink({
-    token: linkToken,
-    onSuccess,
-    onExit: (errorP, metadata) => {
-      if (errorP) {
-        console.error('Plaid Link exited with error:', errorP);
-        setError('Failed to link account');
-      } else {
-        console.log('Plaid Link exited successfully:', metadata);
-      }
-    },
-  });
-
   const fetchAccounts = useCallback(async () => {
     try {
       const response = await handleRequest('/api/accounts', 'GET', setError, true);
       if (response?.success) {
-        setAccounts(
-          response.data.map(
-            (account: any) =>
-              ({
-                id: account.id.toString(),
-                name: account.name,
-                type: account.type,
-                balance: parseFloat(account.balance.toString()),
-                description: account.description,
-                isActive: account.isActive,
-                createdAt: new Date(account.createdAt),
-                isPlaid: false,
-              }) as AccountProps
-          )
-        );
+        if (response.data.length === 0) {
+          setAccounts(null);
+        } else {
+          setAccounts(
+            response.data.map(
+              (account: any) =>
+                ({
+                  id: account.id.toString(),
+                  name: account.name,
+                  type: account.type,
+                  balance: parseFloat(account.balance.toString()),
+                  description: account.description,
+                  isActive: account.isActive,
+                  createdAt: new Date(account.createdAt),
+                  isPlaid: false,
+                }) as AccountProps
+            )
+          );
+        }
       }
 
       const plaidResponse = await handleRequest('/api/plaid/balance', 'GET', setError, true);
@@ -110,7 +87,10 @@ export function AccountsView() {
           isPlaid: true,
         })) as AccountProps[];
 
-        setAccounts((prev) => [...prev.filter(a => !plaidAccounts.map(b => b.id).includes(a.id)), ...plaidAccounts]);
+        setAccounts((prev) => {
+          if (prev == null) return plaidAccounts;
+          return [...prev.filter(a => !plaidAccounts.map(b => b.id).includes(a.id)), ...plaidAccounts];
+      });
       }
     } catch (err) {
       console.error('Error fetching accounts:', err);
@@ -121,6 +101,33 @@ export function AccountsView() {
   useEffect(() => {
     fetchAccounts();
   }, [fetchAccounts]);
+
+    const onSuccess = useCallback<PlaidLinkOnSuccess>(async (publicToken, metadata) => {
+    console.log(publicToken, metadata);
+
+    const response = await handleRequest('/api/plaid/exchange_public_token', 'POST', setError, true, {
+      public_token: publicToken,
+    });
+
+    if (response?.success) {
+      console.log('Public token exchanged successfully:', response.data);
+      await fetchAccounts(); // Refresh accounts after linking
+    }
+  }, [fetchAccounts]);
+
+  // Plaid Link configuration - only initialize when token is available
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess,
+    onExit: (errorP, metadata) => {
+      if (errorP) {
+        console.error('Plaid Link exited with error:', errorP);
+        setError('Failed to link account');
+      } else {
+        console.log('Plaid Link exited successfully:', metadata);
+      }
+    },
+  });
 
   const handleNewAccount = useCallback(
     async (accountData: NewAccountSubmitProps) => {
@@ -231,7 +238,7 @@ export function AccountsView() {
       </Box>
 
       <Grid container spacing={3}>
-        {accounts.map((account) => (
+        {accounts?.map((account) => (
           <Grid key={account.id} size={{ xs: 12, sm: 6, lg: 4 }}>
             <AccountItem
               account={account}
@@ -242,7 +249,23 @@ export function AccountsView() {
         ))}
       </Grid>
 
-      {accounts.length === 0 && !error && (
+      {accounts == null && !error && (
+        <Box
+          sx={{
+            textAlign: 'center',
+            py: 8,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Accounts Loading!
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Please wait while we fetch your accounts
+          </Typography>
+        </Box>
+      )}
+
+      {accounts != null && accounts.length === 0 && !error && (
         <Box
           sx={{
             textAlign: 'center',

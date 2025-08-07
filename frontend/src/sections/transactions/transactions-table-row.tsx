@@ -86,7 +86,7 @@ export function TransactionsTableRow({ row, selected, onSelectRow, onDeleteRow, 
     const updatedData = {
       description: editData.description,
       category: editData.category,
-      amount: parseFloat(editData.amount),
+      amount: parseFloat(editData.amount.replace(/[^0-9.-]+/g, '')),
       date: editData.date.toDate(),
       type: editData.type
     };
@@ -152,7 +152,9 @@ export function TransactionsTableRow({ row, selected, onSelectRow, onDeleteRow, 
               fullWidth
             />
           ) : (
-            row.description
+            row.description.length > 60
+              ? `${row.description.slice(0, 57)}...`
+              : row.description
           )}
         </TableCell>
 

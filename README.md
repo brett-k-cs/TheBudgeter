@@ -14,12 +14,14 @@ The Budgeter is a clean, intuitive budgeting website designed to help users take
   - Solar by [480 Design](https://www.figma.com/community/file/1166831539721848736). Distributed under the [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license.
   - Google Material Icons by [Mateiral Design Authors](https://github.com/material-icons/material-icons). Distributed under the [Apache 2.0](https://github.com/material-icons/material-icons/blob/master/LICENSE) license.
   - Eva by [Akveo](https://github.com/akveo/eva-icons/). Distributed under the [MIT](https://github.com/akveo/eva-icons/blob/master/LICENSE.txt) license.
+  - Mingcute by [MingCute Design](https://github.com/Richard9394/MingCute). Distributed under the [Apache 2.0](https://github.com/Richard9394/MingCute/blob/main/LICENSE) license.
 
 ## Pages
 
 - Dashboard
 - Transactions
 - Budgets
+- Accounts
 
 ## Quick start
 

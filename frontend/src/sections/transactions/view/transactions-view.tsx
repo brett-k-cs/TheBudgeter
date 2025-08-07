@@ -1,7 +1,7 @@
-import type { ImportTransactionSubmit } from 'src/components/csv-importer/csv-importer';
 import type { TransactionProps } from 'src/sections/transactions/transactions-table-row';
 import type { FilterOptions } from 'src/sections/transactions/transactions-table-toolbar';
 import type { NewTransactionSubmitProps } from 'src/sections/transactions/new-transaction-modal';
+import type { ImportTransactionSubmit } from 'src/components/transactions-importer/transactions-importer';
 
 import { useState, useEffect, useCallback } from 'react';
 
@@ -21,7 +21,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { ExportModal } from 'src/components/export-modal/export-modal';
-import { ImportTransactionsModal } from 'src/components/csv-importer/csv-importer';
+import { ImportTransactionsModal } from 'src/components/transactions-importer/transactions-importer';
 
 import { TableNoData } from '../table-no-data';
 import { TableEmptyRows } from '../table-empty-rows';
@@ -44,13 +44,13 @@ export function TransactionsView() {
     dateFrom: null,
     dateTo: null,
     amountMin: '',
-    amountMax: ''
+    amountMax: '',
   });
 
   const [transactions, setTransactions] = useState<TransactionProps[]>([]);
 
   const dataFiltered: TransactionProps[] = applyFilter({
-    inputData: transactions.map(a => ({
+    inputData: transactions.map((a) => ({
       ...a,
       amount: a.type === 'withdrawal' ? -Math.abs(a.amount) : Math.abs(a.amount),
     })),
@@ -59,19 +59,24 @@ export function TransactionsView() {
     filterOptions,
   });
 
-  const notFound = !dataFiltered.length && (!!filterName || Object.values(filterOptions).some(v => v !== '' && v !== null));
+  const notFound =
+    !dataFiltered.length &&
+    (!!filterName || Object.values(filterOptions).some((v) => v !== '' && v !== null));
 
   const [openNew, setOpenNew] = useState(false);
   const [openImport, setOpenImport] = useState(false);
   const [openExport, setOpenExport] = useState(false);
 
-  const handleUpdateTransaction = useCallback((id: string, updatedData: Partial<TransactionProps>) => {
-    setTransactions((prev) =>
-      prev.map((transaction) =>
-        transaction.id === id ? { ...transaction, ...updatedData } : transaction
-      )
-    );
-  }, []);
+  const handleUpdateTransaction = useCallback(
+    (id: string, updatedData: Partial<TransactionProps>) => {
+      setTransactions((prev) =>
+        prev.map((transaction) =>
+          transaction.id === id ? { ...transaction, ...updatedData } : transaction
+        )
+      );
+    },
+    []
+  );
 
   const handleNewTransaction = async ({
     type,
@@ -93,24 +98,18 @@ export function TransactionsView() {
         category,
         date: date.toDate(),
       }
-    )
-   
+    );
+
     if (result) {
-        setOpenNew(false);
-        setTransactions((prev) => [
-          ...prev,
-          result.data
-        ]);
-      }
+      setOpenNew(false);
+      setTransactions((prev) => [...prev, result.data]);
+    }
   };
 
-  const handleImportTransactions = ({ data } : ImportTransactionSubmit) => {
+  const handleImportTransactions = ({ data }: ImportTransactionSubmit) => {
     setOpenImport(false);
-    setTransactions((prev) => [
-      ...prev,
-      ...data
-    ]);
-  }
+    setTransactions((prev) => [...prev, ...data]);
+  };
 
   // On initial load, fetch transactions from the backend
   useEffect(() => {
@@ -133,11 +132,9 @@ export function TransactionsView() {
         open={openImport}
         onClose={() => setOpenImport(false)}
         onSubmit={handleImportTransactions}
+        existingTransactions={transactions}
       />
-      <ExportModal
-        open={openExport}
-        onClose={() => setOpenExport(false)}
-      />
+      <ExportModal open={openExport} onClose={() => setOpenExport(false)} />
       <NewTransactionModal
         open={openNew}
         onClose={() => setOpenNew(false)}
@@ -190,13 +187,9 @@ export function TransactionsView() {
             table.onResetPage();
           }}
           onDeleteSelected={() => {
-            handleRequest(
-              '/api/transactions',
-              'DELETE',
-              undefined,
-              true,
-              { ids: table.selected }
-            ).then((result) => {
+            handleRequest('/api/transactions', 'DELETE', undefined, true, {
+              ids: table.selected,
+            }).then((result) => {
               if (result) {
                 setTransactions((prev) =>
                   prev.filter((transaction) => !table.selected.includes(transaction.id))
@@ -210,7 +203,7 @@ export function TransactionsView() {
           onFilterOptionsChange={setFilterOptions}
         />
 
-         <Scrollbar>
+        <Scrollbar>
           <TableContainer sx={{ overflow: 'unset' }}>
             <Table sx={{ minWidth: 800 }}>
               <UserTableHead
@@ -229,7 +222,10 @@ export function TransactionsView() {
                   { id: 'date', label: 'Date' },
                   { id: 'description', label: 'Description' },
                   { id: 'category', label: 'Category' },
-                  { id: 'amount', label: `Amount${filterName !== "" ? ` ($${dataFiltered.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)})` : ""}` },
+                  {
+                    id: 'amount',
+                    label: `Amount${filterName !== '' ? ` ($${dataFiltered.reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)})` : ''}`,
+                  },
                   { id: '' },
                 ]}
               />
