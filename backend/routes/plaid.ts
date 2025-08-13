@@ -1,6 +1,9 @@
-import { Request, Response, Router } from "express";
+import type { Request, Response } from "express";
+import type { PlaidApi } from "plaid";
+
 import { CountryCode, Products } from "plaid";
 import { fileURLToPath } from "url";
+import { Router } from "express";
 import crypto from "crypto";
 import path from "path";
 import fs from "fs";
@@ -88,28 +91,7 @@ router.post("/exchange_public_token", async (req: Request, res: Response) => {
     }
 });
 
-router.get("/balance", async (req, res) => {
-    const user = await User.findByPk(req.user!.id);
-    if (!user) {
-        res.status(404).json({ error: "User not found" });
-        return;
-    }
-
-    const plaidItems = await PlaidItem.findAll({
-        where: { userId: user.id },
-        attributes: ["accessToken"],
-    });
-
-    if (!plaidItems || plaidItems.length === 0) {
-        res.status(400).json({ error: "No linked accounts" });
-        return;
-    }
-
-    if (!plaidClient) {
-        res.status(500).json({ error: "Plaid client not initialized" });
-        return;
-    }
-
+export const getBalances = async (plaidItems: any[], plaidClient: PlaidApi) : Promise<any[]> => {
     const balances = [];
     for (const item of plaidItems) {
         if (fs.existsSync(`${path.join(__dirname, "../", "plaid-data", `${item.accessToken.split(":")[0]}.json`)}`)) {
@@ -138,37 +120,63 @@ router.get("/balance", async (req, res) => {
         let decryptedToken = decipher.update(encryptedText, "hex", "utf8");
         decryptedToken += decipher.final("utf8");
 
-        try {
-            const balanceResponse = await plaidClient.accountsBalanceGet({
-                access_token: decryptedToken,
-            });
+        const balanceResponse = await plaidClient.accountsBalanceGet({
+            access_token: decryptedToken,
+        });
 
-            // Save the balances to a file for caching
-            if (!fs.existsSync(path.join(__dirname, "../", "plaid-data"))) {
-                fs.mkdirSync(path.join(__dirname, "../", "plaid-data"));
-            }
-            
-            fs.writeFileSync(
-                `${path.join(__dirname, "../", "plaid-data", `${item.accessToken.split(":")[0]}.json`)}`,
-                JSON.stringify({ gatheredAt: Date.now(), accounts: balanceResponse.data.accounts })
-            );
-
-            balances.push(...balanceResponse.data.accounts);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ error: "Failed to fetch balances" });
-            return;
+        // Save the balances to a file for caching
+        if (!fs.existsSync(path.join(__dirname, "../", "plaid-data"))) {
+            fs.mkdirSync(path.join(__dirname, "../", "plaid-data"));
         }
-    }
+        
+        fs.writeFileSync(
+            `${path.join(__dirname, "../", "plaid-data", `${item.accessToken.split(":")[0]}.json`)}`,
+            JSON.stringify({ gatheredAt: Date.now(), accounts: balanceResponse.data.accounts })
+        );
 
-    if (balances.length === 0) {
-        // should never trigger but just in case
-        res.status(404).json({ error: "No balances found" });
+        balances.push(...balanceResponse.data.accounts);
+    }
+    return balances;
+}
+
+router.get("/balance", async (req, res) => {
+    const user = await User.findByPk(req.user!.id);
+    if (!user) {
+        res.status(404).json({ error: "User not found" });
         return;
     }
 
-    // Return the balances
-    res.json({ success: true, data: balances });
+    const plaidItems = await PlaidItem.findAll({
+        where: { userId: user.id },
+        attributes: ["accessToken"],
+    });
+
+    if (!plaidItems || plaidItems.length === 0) {
+        res.status(400).json({ error: "No linked accounts" });
+        return;
+    }
+
+    if (!plaidClient) {
+        res.status(500).json({ error: "Plaid client not initialized" });
+        return;
+    }
+
+    try {
+        const balances = await getBalances(plaidItems, plaidClient);
+
+        if (balances.length === 0) {
+            // should never trigger but just in case
+            res.status(404).json({ error: "No balances found" });
+            return;
+        }
+
+        // Return the balances
+        res.json({ success: true, data: balances });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch balances" });
+        return;
+    }
 });
 
 // Get transactions from Plaid

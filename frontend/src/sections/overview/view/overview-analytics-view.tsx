@@ -17,7 +17,7 @@ import { AnalyticsBudgetCategories } from '../analytics-budget-categories';
 export function OverviewAnalyticsView() {
   const [monthlyIncome, setMonthlyIncome] = useState<Record<string, any>>({});
   const [monthlySpending, setMonthlySpending] = useState<Record<string, any>>({});
-  const [checkingBalance, setCheckingBalance] = useState<Record<string, any>>({});
+  const [netWorth, setNetWorth] = useState<Record<string, any>>({});
   const [primaryBudget, setPrimaryBudget] = useState<Record<string, any> | null>(null);
   const [spendingByCategory, setSpendingByCategory] = useState<Record<string, any>>({});
   const [dateRange, setDateRange] = useState(() => {
@@ -76,6 +76,12 @@ export function OverviewAnalyticsView() {
       const responsePrimary = await handleRequest('/api/budgets/primary', 'GET', undefined, true);
       if (responsePrimary?.success) {
         setPrimaryBudget(responsePrimary.data || null);
+      }
+
+      // Fetch net worth
+      const responseNetWorth = await handleRequest('/api/dashboard/netWorth', 'GET', undefined, true);
+      if (responseNetWorth?.success) {
+        setNetWorth(responseNetWorth.data || {});
       }
     };
 
@@ -140,11 +146,11 @@ export function OverviewAnalyticsView() {
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <AnalyticsWidgetSummary
-            title="Checking Balance"
+            title="Net Worth"
             percent={2.8}
-            total={1302}
+            total={netWorth?.totalNetWorth}
             color="success"
-            icon={<img alt="Checking Balance" src="/assets/icons/glass/ic-glass-cash.svg" />}
+            icon={<img alt="Net Worth" src="/assets/icons/glass/ic-glass-cash.svg" />}
             chart={{
               categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
               series: [40, 70, 50, 28, 70, 75, 7, 64],

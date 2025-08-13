@@ -15,24 +15,35 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 
+import { AssetItem } from '../asset-item';
 import { AccountItem } from '../account-item';
+import { NewAssetModal } from '../new-asset-modal';
 import { NewAccountModal } from '../new-account-modal';
 
+import type { AssetProps } from '../asset-item';
 import type { AccountProps } from '../account-item';
+import type { NewAssetSubmitProps } from '../new-asset-modal';
 import type { NewAccountSubmitProps } from '../new-account-modal';
 
 // ----------------------------------------------------------------------
 
 export function AccountsView() {
   const [accounts, setAccounts] = useState<AccountProps[] | null>(null);
+  const [assets, setAssets] = useState<AssetProps[] | null>(null);
   const [openNew, setOpenNew] = useState(false);
+  const [openNewAsset, setOpenNewAsset] = useState(false);
   const [error, setError] = useState<string>('');
   const [linkToken, setLinkToken] = useState<string | null>(null);
 
   // Create link token function
   const createLinkToken = useCallback(async () => {
     try {
-      const linkTokenRes = await handleRequest('/api/plaid/create_link_token', 'POST', setError, true);
+      const linkTokenRes = await handleRequest(
+        '/api/plaid/create_link_token',
+        'POST',
+        setError,
+        true
+      );
       if (linkTokenRes?.success) {
         setLinkToken(linkTokenRes.data.link_token);
       }
@@ -89,8 +100,11 @@ export function AccountsView() {
 
         setAccounts((prev) => {
           if (prev == null) return plaidAccounts;
-          return [...prev.filter(a => !plaidAccounts.map(b => b.id).includes(a.id)), ...plaidAccounts];
-      });
+          return [
+            ...prev.filter((a) => !plaidAccounts.map((b) => b.id).includes(a.id)),
+            ...plaidAccounts,
+          ];
+        });
       }
     } catch (err) {
       console.error('Error fetching accounts:', err);
@@ -102,18 +116,58 @@ export function AccountsView() {
     fetchAccounts();
   }, [fetchAccounts]);
 
-    const onSuccess = useCallback<PlaidLinkOnSuccess>(async (publicToken, metadata) => {
-    console.log(publicToken, metadata);
-
-    const response = await handleRequest('/api/plaid/exchange_public_token', 'POST', setError, true, {
-      public_token: publicToken,
-    });
-
-    if (response?.success) {
-      console.log('Public token exchanged successfully:', response.data);
-      await fetchAccounts(); // Refresh accounts after linking
+  const fetchAssets = useCallback(async () => {
+    try {
+      const response = await handleRequest('/api/assets', 'GET', setError, true);
+      console.log('Assets fetched successfully:', response);
+      if (response?.success) {
+        setAssets(
+          response.data.map(
+            (asset: any) =>
+              ({
+                id: asset.id.toString(),
+                name: asset.name,
+                type: asset.type,
+                valuation: parseFloat(asset.valuation.toString()),
+                ownershipPercentage: asset.ownershipPercentage ?? 100,
+                description: asset.description,
+                createdAt: new Date(asset.createdAt),
+                updatedAt: new Date(asset.updatedAt),
+              }) as AssetProps
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Error fetching assets:', err);
+      setError('Failed to fetch assets');
     }
-  }, [fetchAccounts]);
+  }, []);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
+
+  const onSuccess = useCallback<PlaidLinkOnSuccess>(
+    async (publicToken, metadata) => {
+      console.log(publicToken, metadata);
+
+      const response = await handleRequest(
+        '/api/plaid/exchange_public_token',
+        'POST',
+        setError,
+        true,
+        {
+          public_token: publicToken,
+        }
+      );
+
+      if (response?.success) {
+        console.log('Public token exchanged successfully:', response.data);
+        await fetchAccounts(); // Refresh accounts after linking
+      }
+    },
+    [fetchAccounts]
+  );
 
   // Plaid Link configuration - only initialize when token is available
   const { open, ready } = usePlaidLink({
@@ -193,12 +247,79 @@ export function AccountsView() {
     [fetchAccounts]
   );
 
+  const handleNewAsset = useCallback(
+    async (assetData: NewAssetSubmitProps) => {
+      try {
+        const response = await handleRequest('/api/assets', 'POST', setError, true, {
+          name: assetData.name,
+          type: assetData.type,
+          valuation: assetData.valuation,
+          description: assetData.description,
+          ownershipPercentage: assetData.ownershipPercentage,
+        });
+
+        if (response?.success) {
+          setOpenNewAsset(false);
+          await fetchAssets(); // Refresh the list
+        }
+      } catch (err) {
+        console.error('Error creating asset:', err);
+        setError('Failed to create asset');
+      }
+    },
+    [fetchAssets]
+  );
+
+  const handleDeleteAsset = useCallback(
+    async (assetId: string) => {
+      try {
+        const response = await handleRequest(`/api/assets/${assetId}`, 'DELETE', setError, true);
+
+        if (response?.success) {
+          await fetchAssets(); // Refresh the list
+        }
+      } catch (err) {
+        console.error('Error deleting asset:', err);
+        setError('Failed to delete asset');
+      }
+    },
+    [fetchAssets]
+  );
+
+  const handleUpdateAsset = useCallback(
+    async (assetId: string, assetData: Partial<AssetProps>) => {
+      try {
+        const response = await handleRequest(`/api/assets/${assetId}`, 'PUT', setError, true, {
+          name: assetData.name,
+          type: assetData.type,
+          valuation: assetData.valuation,
+          description: assetData.description,
+          ownershipPercentage: assetData.ownershipPercentage,
+        });
+
+        if (response?.success) {
+          await fetchAssets(); // Refresh the list
+        }
+      } catch (err) {
+        console.error('Error updating asset:', err);
+        setError('Failed to update asset');
+      }
+    },
+    [fetchAssets]
+  );
+
   return (
     <DashboardContent>
       <NewAccountModal
         open={openNew}
         onClose={() => setOpenNew(false)}
         onSubmit={handleNewAccount}
+      />
+
+      <NewAssetModal
+        open={openNewAsset}
+        onClose={() => setOpenNewAsset(false)}
+        onSubmit={handleNewAsset}
       />
 
       {error && (
@@ -284,6 +405,75 @@ export function AccountsView() {
             onClick={() => setOpenNew(true)}
           >
             Add Account
+          </Button>
+        </Box>
+      )}
+
+      {/* Assets Section */}
+      <Box
+        sx={{
+          mb: 5,
+          mt: 8,
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        <Typography variant="h4" sx={{ flexGrow: 1 }}>
+          Assets
+        </Typography>
+        <Button
+          variant="contained"
+          color="inherit"
+          startIcon={<Iconify icon="mingcute:add-line" />}
+          onClick={() => setOpenNewAsset(true)}
+        >
+          New Asset
+        </Button>
+      </Box>
+
+      <Grid container spacing={3}>
+        {assets?.map((asset) => (
+          <Grid key={asset.id} size={{ xs: 12, sm: 6, lg: 4 }}>
+            <AssetItem asset={asset} onDelete={handleDeleteAsset} onUpdate={handleUpdateAsset} />
+          </Grid>
+        ))}
+      </Grid>
+
+      {assets == null && !error && (
+        <Box
+          sx={{
+            textAlign: 'center',
+            py: 8,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            Assets Loading!
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Please wait while we fetch your assets
+          </Typography>
+        </Box>
+      )}
+
+      {assets != null && assets.length === 0 && !error && (
+        <Box
+          sx={{
+            textAlign: 'center',
+            py: 8,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 1 }}>
+            No assets found
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Create your first asset to start tracking your wealth
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => setOpenNewAsset(true)}
+          >
+            Add Asset
           </Button>
         </Box>
       )}

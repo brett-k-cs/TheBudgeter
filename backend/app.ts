@@ -10,6 +10,7 @@ import { summariesRouter } from "./routes/summaries.js";
 import { transactionsRouter } from "./routes/transactions.js";
 import { budgetsRouter } from "./routes/budgets.js";
 import { accountsRouter } from "./routes/accounts.js";
+import { assetsRouter } from "./routes/assets.js";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api/dashboard", authenticateTokenMiddelware, summariesRouter);
 app.use("/api/transactions", authenticateTokenMiddelware, transactionsRouter);
 app.use("/api/budgets", authenticateTokenMiddelware, budgetsRouter);
 app.use("/api/accounts", authenticateTokenMiddelware, accountsRouter);
+app.use("/api/assets", authenticateTokenMiddelware, assetsRouter);
 app.use("/api/plaid", authenticateTokenMiddelware, plaidRouter);
 
 export default app;

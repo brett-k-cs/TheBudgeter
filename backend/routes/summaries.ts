@@ -3,6 +3,12 @@ import { Request, Response, Router } from 'express';
 import { Op } from 'sequelize';
 
 import { Transaction } from '../models/transaction.js';
+import { PlaidItem } from '../models/plaidItem.js';
+import { Account } from '../models/account.js';
+import { Asset } from '../models/asset.js';
+
+import { plaidClient } from '../plaid-manager.js';
+import { getBalances } from './plaid.js';
 
 const router = Router();
 
@@ -142,6 +148,67 @@ router.get('/categoryTransactions', async (req, res) => {
       category: category as string 
     } 
   });
+});
+
+router.get('/netWorth', async (req, res) => {
+  try {
+    // Get all accounts for the user
+    const accounts = await Account.findAll({
+      where: { userId: req.user!.id },
+      attributes: ['balance']
+    });
+
+    // Get all plaid connections (credit cards are negative worth)
+    const plaidItems = await PlaidItem.findAll({
+      where: { userId: req.user!.id },
+      attributes: ['accessToken']
+    });
+
+    // Get all assets
+    const assets = await Asset.findAll({
+      where: { userId: req.user!.id },
+      attributes: ['valuation', 'ownershipPercentage']
+    });
+
+    var totalNetWorth = 0;
+
+    // Calculate net worth
+    const accountsTotal = accounts.reduce((sum, account) => 
+      sum + parseFloat(account.balance.toString()), 0);
+    totalNetWorth += accountsTotal;
+    
+    var plaidConnectionsTotal = 0;
+    if (plaidItems && plaidItems.length > 0) {
+      if (!plaidClient) {
+        res.status(500).json({ error: "Plaid client not initialized" });
+        return;
+      }
+      
+      const plaidBalances = await getBalances(plaidItems, plaidClient);
+      plaidConnectionsTotal = plaidBalances.reduce((sum, item) => 
+        sum + (item.balances.current * (item.type === 'credit' ? -1 : 1) || 0), 0);
+      totalNetWorth += plaidConnectionsTotal;
+    }
+
+    const assetsTotal = assets.reduce((sum, asset) => 
+      sum + asset.valuation * (asset.ownershipPercentage / 100), 0);
+    totalNetWorth += assetsTotal;
+
+    res.json({ 
+      success: true, 
+      data: {
+        totalNetWorth,
+        breakdown: {
+          accounts: accountsTotal,
+          plaidConnections: plaidConnectionsTotal,
+          assets: assetsTotal
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error calculating net worth:', error);
+    res.status(500).json({ success: false, error: 'Failed to calculate net worth' });
+  }
 });
 
 export const summariesRouter = router;
