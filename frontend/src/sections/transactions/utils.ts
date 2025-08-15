@@ -1,10 +1,11 @@
+import type { TaxedTransaction } from 'src/utils/tax-calculations';
+
 import dayjs from 'dayjs';
 
 import { fDateTime } from 'src/utils/format-time';
 
 import type { TransactionProps } from './transactions-table-row';
 import type { FilterOptions } from './transactions-table-toolbar';
-
 // ----------------------------------------------------------------------
 
 export const visuallyHidden = {
@@ -63,7 +64,7 @@ export function getComparator<Key extends keyof any>(
 // ----------------------------------------------------------------------
 
 type ApplyFilterProps = {
-  inputData: TransactionProps[];
+  inputData: TransactionProps[] | TaxedTransaction[];
   filterName: string;
   filterOptions: FilterOptions;
   comparator: (a: any, b: any) => number;

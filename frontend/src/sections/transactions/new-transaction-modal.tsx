@@ -57,7 +57,8 @@ export function NewTransactionModal({ onClose, onSubmit, open = true } : NewTran
   };
 
   const handleSubmit = () => {
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) < 0) {
+    const amtWithoutCommas = amount.replace(/,/g, '');
+    if (!amtWithoutCommas || isNaN(parseFloat(amtWithoutCommas)) || parseFloat(amtWithoutCommas) < 0) {
       setError('Please enter a valid amount');
       return;
     }
@@ -74,7 +75,7 @@ export function NewTransactionModal({ onClose, onSubmit, open = true } : NewTran
       return;
     }
 
-    onSubmit({ amount: parseFloat(amount), type, description, category, date });
+    onSubmit({ amount: parseFloat(amtWithoutCommas), type, description, category, date });
     onClose();
   };
 

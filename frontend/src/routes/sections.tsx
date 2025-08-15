@@ -14,6 +14,7 @@ import { DashboardLayout } from 'src/layouts/dashboard';
 
 export const DashboardPage = lazy(() => import('src/pages/dashboard'));
 export const TransactionsPage = lazy(() => import('src/pages/transactions'));
+export const TaxEstimationPage = lazy(() => import('src/pages/tax-estimation'));
 export const SignInPage = lazy(() => import('src/pages/sign-in'));
 export const SignUpPage = lazy(() => import('src/pages/sign-up'));
 export const BudgetsPage = lazy(() => import('src/pages/budgets'));
@@ -52,6 +53,7 @@ export const routesSection: RouteObject[] = [
     children: [
       { index: true, element: <DashboardPage /> },
       { path: 'transactions', element: <TransactionsPage /> },
+      { path: 'tax-estimation', element: <TaxEstimationPage /> },
       { path: 'budgets', element: <BudgetsPage /> },
       { path: 'accounts', element: <AccountsPage /> },
     ],

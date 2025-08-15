@@ -33,6 +33,7 @@ export type TransactionProps = {
   description: string;
   category: string;
   amount: number;
+  taxCategory?: 'w2' | '1099' | 'none';
 };
 
 type TransactionsTableRowProps = {
